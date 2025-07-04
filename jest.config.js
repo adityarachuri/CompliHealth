@@ -9,9 +9,9 @@ const createJestConfig = nextJest({
 const customJestConfig = {
   setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
   moduleNameMapping: {
-    // Handle module aliases (this will be automatically configured for you based on your tsconfig.json paths)
+    // Handle module aliases
     "^@/components/(.*)$": "<rootDir>/components/$1",
-    "^@/pages/(.*)$": "<rootDir>/pages/$1",
+    "^@/app/(.*)$": "<rootDir>/app/$1",
     "^@/lib/(.*)$": "<rootDir>/lib/$1",
     "^@/hooks/(.*)$": "<rootDir>/hooks/$1",
     "^@/contexts/(.*)$": "<rootDir>/contexts/$1",
@@ -25,7 +25,15 @@ const customJestConfig = {
     "contexts/**/*.{js,jsx,ts,tsx}",
     "!**/*.d.ts",
     "!**/node_modules/**",
+    "!**/__tests__/**",
+    "!**/coverage/**",
   ],
+  testPathIgnorePatterns: ["<rootDir>/.next/", "<rootDir>/node_modules/"],
+  transformIgnorePatterns: ["/node_modules/", "^.+\\.module\\.(css|sass|scss)$"],
+  moduleFileExtensions: ["ts", "tsx", "js", "jsx"],
+  transform: {
+    "^.+\\.(js|jsx|ts|tsx)$": ["babel-jest", { presets: ["next/babel"] }],
+  },
 }
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async

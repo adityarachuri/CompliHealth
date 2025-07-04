@@ -1,386 +1,242 @@
 "use client"
 
-import { useAuth } from "@/contexts/auth-context"
-import { MainLayout } from "@/components/layout/main-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import {
-  FileText,
-  ClipboardList,
-  Shield,
-  DollarSign,
-  Users,
-  TrendingUp,
-  Calendar,
-  Bell,
-  Activity,
-  Heart,
-} from "lucide-react"
+import { FileText, Users, Shield, DollarSign, TrendingUp, Calendar, AlertCircle, CheckCircle } from "lucide-react"
 
 export default function DashboardPage() {
-  const { user } = useAuth()
+  const stats = [
+    {
+      title: "Active Claims",
+      value: "3",
+      description: "Claims in progress",
+      icon: FileText,
+      trend: "+2 from last month",
+    },
+    {
+      title: "Total Coverage",
+      value: "$50,000",
+      description: "Annual coverage limit",
+      icon: Shield,
+      trend: "Renewed this year",
+    },
+    {
+      title: "Claims Paid",
+      value: "$12,450",
+      description: "This year",
+      icon: DollarSign,
+      trend: "+15% from last year",
+    },
+    {
+      title: "Network Providers",
+      value: "2,847",
+      description: "In your area",
+      icon: Users,
+      trend: "+127 new providers",
+    },
+  ]
 
-  if (!user) return null
+  const recentClaims = [
+    {
+      id: "CLM-001",
+      type: "Medical Consultation",
+      date: "2024-01-15",
+      amount: "$150",
+      status: "approved",
+      provider: "Dr. Smith Medical Center",
+    },
+    {
+      id: "CLM-002",
+      type: "Prescription",
+      date: "2024-01-12",
+      amount: "$85",
+      status: "processing",
+      provider: "City Pharmacy",
+    },
+    {
+      id: "CLM-003",
+      type: "Lab Tests",
+      date: "2024-01-10",
+      amount: "$220",
+      status: "pending",
+      provider: "HealthLab Diagnostics",
+    },
+  ]
 
-  const userRole = user.role
-  const userName = user.name
+  const upcomingAppointments = [
+    {
+      id: 1,
+      provider: "Dr. Johnson",
+      specialty: "Cardiology",
+      date: "2024-01-25",
+      time: "10:00 AM",
+      type: "Follow-up",
+    },
+    {
+      id: 2,
+      provider: "Dr. Williams",
+      specialty: "Dermatology",
+      date: "2024-01-28",
+      time: "2:30 PM",
+      type: "Consultation",
+    },
+  ]
 
-  const renderCustomerDashboard = () => (
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "approved":
+        return "bg-green-100 text-green-800"
+      case "processing":
+        return "bg-yellow-100 text-yellow-800"
+      case "pending":
+        return "bg-blue-100 text-blue-800"
+      default:
+        return "bg-gray-100 text-gray-800"
+    }
+  }
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "approved":
+        return <CheckCircle className="h-4 w-4" />
+      case "processing":
+      case "pending":
+        return <AlertCircle className="h-4 w-4" />
+      default:
+        return null
+    }
+  }
+
+  return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">Welcome back, {userName}</h1>
-        <Button>
-          <Bell className="mr-2 h-4 w-4" />
-          Notifications
-        </Button>
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <p className="text-muted-foreground">Welcome back! Here's an overview of your health insurance activity.</p>
       </div>
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Policies</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">3</div>
-            <p className="text-xs text-muted-foreground">+1 from last month</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Claims</CardTitle>
-            <ClipboardList className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">2</div>
-            <p className="text-xs text-muted-foreground">Processing in 3-5 days</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Coverage Amount</CardTitle>
-            <Shield className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">$500K</div>
-            <p className="text-xs text-muted-foreground">Total coverage limit</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Deductible Used</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">$1,200</div>
-            <p className="text-xs text-muted-foreground">$800 remaining</p>
-          </CardContent>
-        </Card>
+      {/* Stats Grid */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {stats.map((stat) => (
+          <Card key={stat.title}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
+              <stat.icon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stat.value}</div>
+              <p className="text-xs text-muted-foreground">{stat.description}</p>
+              <div className="flex items-center pt-1">
+                <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
+                <span className="text-xs text-green-500">{stat.trend}</span>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      {/* Health Summary */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Recent Claims */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center">
-              <Heart className="mr-2 h-5 w-5 text-red-500" />
-              Your Health Summary
-            </CardTitle>
-            <CardDescription>Overview of your health metrics and goals</CardDescription>
+            <CardTitle>Recent Claims</CardTitle>
+            <CardDescription>Your latest insurance claims</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <div className="flex justify-between text-sm mb-2">
-                <span>Annual Deductible Progress</span>
-                <span>60%</span>
-              </div>
-              <Progress value={60} className="h-2" />
+          <CardContent>
+            <div className="space-y-4">
+              {recentClaims.map((claim) => (
+                <div key={claim.id} className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">{claim.type}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {claim.provider} • {claim.date}
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm font-medium">{claim.amount}</span>
+                    <Badge className={getStatusColor(claim.status)}>
+                      <div className="flex items-center space-x-1">
+                        {getStatusIcon(claim.status)}
+                        <span className="capitalize">{claim.status}</span>
+                      </div>
+                    </Badge>
+                  </div>
+                </div>
+              ))}
             </div>
-            <div>
-              <div className="flex justify-between text-sm mb-2">
-                <span>Preventive Care Visits</span>
-                <span>2/3 completed</span>
-              </div>
-              <Progress value={67} className="h-2" />
-            </div>
-            <div className="pt-2">
-              <Button variant="outline" size="sm">
-                Schedule Checkup
-              </Button>
-            </div>
+            <Button variant="outline" className="w-full mt-4 bg-transparent">
+              View All Claims
+            </Button>
           </CardContent>
         </Card>
 
+        {/* Upcoming Appointments */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center">
-              <Calendar className="mr-2 h-5 w-5 text-blue-500" />
-              Upcoming Appointments
-            </CardTitle>
-            <CardDescription>Your scheduled healthcare appointments</CardDescription>
+            <CardTitle>Upcoming Appointments</CardTitle>
+            <CardDescription>Your scheduled healthcare visits</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                <div>
-                  <p className="font-medium">Dr. Sarah Johnson</p>
-                  <p className="text-sm text-gray-600">Annual Physical</p>
+            <div className="space-y-4">
+              {upcomingAppointments.map((appointment) => (
+                <div key={appointment.id} className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">{appointment.provider}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {appointment.specialty} • {appointment.type}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium">{appointment.date}</p>
+                    <p className="text-xs text-muted-foreground">{appointment.time}</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium">Jan 15</p>
-                  <p className="text-xs text-gray-500">2:00 PM</p>
-                </div>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                <div>
-                  <p className="font-medium">Dr. Michael Chen</p>
-                  <p className="text-sm text-gray-600">Cardiology Follow-up</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium">Jan 22</p>
-                  <p className="text-xs text-gray-500">10:30 AM</p>
-                </div>
-              </div>
-              <Button variant="outline" className="w-full bg-transparent">
-                View All Appointments
-              </Button>
+              ))}
             </div>
+            <Button variant="outline" className="w-full mt-4 bg-transparent">
+              <Calendar className="h-4 w-4 mr-2" />
+              Schedule Appointment
+            </Button>
           </CardContent>
         </Card>
       </div>
 
-      {/* Recent Activities */}
+      {/* Coverage Overview */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <Activity className="mr-2 h-5 w-5 text-green-500" />
-            Recent Activities
-          </CardTitle>
-          <CardDescription>Your latest insurance and healthcare activities</CardDescription>
+          <CardTitle>Coverage Overview</CardTitle>
+          <CardDescription>Your current insurance coverage status</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {[
-              {
-                action: "Claim submitted for routine checkup",
-                date: "2 days ago",
-                status: "processing",
-                amount: "$150",
-              },
-              {
-                action: "Policy premium payment processed",
-                date: "1 week ago",
-                status: "completed",
-                amount: "$320",
-              },
-              {
-                action: "Prescription coverage approved",
-                date: "2 weeks ago",
-                status: "approved",
-                amount: "$45",
-              },
-            ].map((activity, index) => (
-              <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex-1">
-                  <p className="font-medium">{activity.action}</p>
-                  <p className="text-sm text-gray-600">{activity.date}</p>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <span className="font-medium">{activity.amount}</span>
-                  <Badge
-                    variant={
-                      activity.status === "completed"
-                        ? "default"
-                        : activity.status === "approved"
-                          ? "secondary"
-                          : "outline"
-                    }
-                  >
-                    {activity.status}
-                  </Badge>
-                </div>
+          <div className="grid gap-6 md:grid-cols-3">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Deductible</span>
+                <span>$1,200 / $2,500</span>
               </div>
-            ))}
+              <Progress value={48} className="h-2" />
+              <p className="text-xs text-muted-foreground">$1,300 remaining</p>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Out-of-Pocket Max</span>
+                <span>$3,200 / $8,000</span>
+              </div>
+              <Progress value={40} className="h-2" />
+              <p className="text-xs text-muted-foreground">$4,800 remaining</p>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Annual Coverage</span>
+                <span>$12,450 / $50,000</span>
+              </div>
+              <Progress value={25} className="h-2" />
+              <p className="text-xs text-muted-foreground">$37,550 remaining</p>
+            </div>
           </div>
         </CardContent>
       </Card>
     </div>
   )
-
-  const renderHospitalDashboard = () => (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-gray-900">Hospital Dashboard - {userName}</h1>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Patients</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">1,247</div>
-            <p className="text-xs text-muted-foreground">+12% from last month</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Claims</CardTitle>
-            <ClipboardList className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">89</div>
-            <p className="text-xs text-muted-foreground">Awaiting approval</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Revenue This Month</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">$2.4M</div>
-            <p className="text-xs text-muted-foreground">+8% from last month</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Bed Occupancy</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">87%</div>
-            <p className="text-xs text-muted-foreground">245/280 beds occupied</p>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  )
-
-  const renderInsurerDashboard = () => (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-gray-900">Insurance Dashboard - {userName}</h1>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Members</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">45,231</div>
-            <p className="text-xs text-muted-foreground">+2.1% from last month</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Claims This Month</CardTitle>
-            <ClipboardList className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">3,247</div>
-            <p className="text-xs text-muted-foreground">-5.2% from last month</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Premium Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">$12.4M</div>
-            <p className="text-xs text-muted-foreground">+3.8% from last month</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Loss Ratio</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">78.2%</div>
-            <p className="text-xs text-muted-foreground">Within target range</p>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  )
-
-  const renderTPADashboard = () => (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-gray-900">TPA Dashboard - {userName}</h1>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Managed Lives</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">28,456</div>
-            <p className="text-xs text-muted-foreground">Across 15 clients</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Claims Processed</CardTitle>
-            <ClipboardList className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">1,892</div>
-            <p className="text-xs text-muted-foreground">This month</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Processing Time</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">2.3 days</div>
-            <p className="text-xs text-muted-foreground">Average turnaround</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Client Satisfaction</CardTitle>
-            <Shield className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">94.5%</div>
-            <p className="text-xs text-muted-foreground">Based on surveys</p>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  )
-
-  const renderDashboard = () => {
-    switch (userRole) {
-      case "hospital":
-        return renderHospitalDashboard()
-      case "insurer":
-        return renderInsurerDashboard()
-      case "tpa":
-        return renderTPADashboard()
-      default:
-        return renderCustomerDashboard()
-    }
-  }
-
-  return <MainLayout>{renderDashboard()}</MainLayout>
 }

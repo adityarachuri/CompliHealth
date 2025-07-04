@@ -8,6 +8,7 @@
     "lint": "next lint",
     "start": "next start",
     "test": "jest",
+    "test:ci": "jest --ci --coverage --watchAll=false",
     "test:coverage": "jest --coverage",
     "test:watch": "jest --watch"
   },
@@ -43,6 +44,7 @@
     "@supabase/supabase-js": "latest",
     "@testing-library/dom": "latest",
     "autoprefixer": "^10.4.20",
+    "child_process": "latest",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "latest",
@@ -53,6 +55,7 @@
     "next": "15.2.4",
     "next-themes": "latest",
     "node-notifier": "latest",
+    "path": "latest",
     "react": "^19",
     "react-day-picker": "latest",
     "react-dom": "^19",

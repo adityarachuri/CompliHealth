@@ -3,20 +3,28 @@ import DashboardPage from "@/app/dashboard/page"
 import { AuthProvider } from "@/contexts/auth-context"
 import jest from "jest" // Declare the jest variable
 
+const mockUseAuth = {
+  user: {
+    id: "123",
+    email: "test@example.com",
+    user_metadata: { role: "customer", name: "Test User" },
+  },
+  loading: false,
+  signOut: jest.fn(),
+  signIn: jest.fn(),
+}
+
 // Mock the auth context
 jest.mock("@/contexts/auth-context", () => ({
   ...jest.requireActual("@/contexts/auth-context"),
-  useAuth: () => ({
-    user: {
-      id: "123",
-      email: "test@example.com",
-      user_metadata: { role: "customer", name: "Test User" },
-    },
-    loading: false,
-  }),
+  useAuth: () => mockUseAuth,
 }))
 
 describe("Dashboard Page", () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
   it("should render dashboard metrics", async () => {
     render(
       <AuthProvider>

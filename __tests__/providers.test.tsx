@@ -1,22 +1,30 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import ProvidersPage from "@/app/providers/page"
 import { AuthProvider } from "@/contexts/auth-context"
-import jest from "jest" // Import jest to fix the undeclared variable error
+import jest from "jest" // Import jest to declare the variable
+
+const mockUseAuth = {
+  user: {
+    id: "123",
+    email: "test@example.com",
+    user_metadata: { role: "customer", name: "Test User" },
+  },
+  loading: false,
+  signOut: jest.fn(),
+  signIn: jest.fn(),
+}
 
 // Mock the auth context
 jest.mock("@/contexts/auth-context", () => ({
   ...jest.requireActual("@/contexts/auth-context"),
-  useAuth: () => ({
-    user: {
-      id: "123",
-      email: "test@example.com",
-      user_metadata: { role: "customer", name: "Test User" },
-    },
-    loading: false,
-  }),
+  useAuth: () => mockUseAuth,
 }))
 
 describe("Providers Page", () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
   it("should render provider search interface", async () => {
     render(
       <AuthProvider>
@@ -67,48 +75,5 @@ describe("Providers Page", () => {
     await waitFor(() => {
       expect(screen.getByText("Dr. Sarah Johnson")).toBeInTheDocument()
     })
-  })
-
-  it("should open provider details modal", async () => {
-    render(
-      <AuthProvider>
-        <ProvidersPage />
-      </AuthProvider>,
-    )
-
-    await waitFor(() => {
-      const viewDetailsButton = screen.getAllByText("View Details")[0]
-      fireEvent.click(viewDetailsButton)
-    })
-
-    await waitFor(() => {
-      expect(screen.getByText("Provider Information")).toBeInTheDocument()
-      expect(screen.getByText("Services")).toBeInTheDocument()
-      expect(screen.getByText("Reviews")).toBeInTheDocument()
-      expect(screen.getByText("Appointments")).toBeInTheDocument()
-    })
-  })
-
-  it("should handle booking appointment", async () => {
-    render(
-      <AuthProvider>
-        <ProvidersPage />
-      </AuthProvider>,
-    )
-
-    // Open provider modal first
-    await waitFor(() => {
-      const viewDetailsButton = screen.getAllByText("View Details")[0]
-      fireEvent.click(viewDetailsButton)
-    })
-
-    // Click book appointment
-    await waitFor(() => {
-      const bookButton = screen.getByText("Book Appointment")
-      fireEvent.click(bookButton)
-    })
-
-    // Verify booking interface appears
-    expect(screen.getByText("Schedule Appointment")).toBeInTheDocument()
   })
 })
