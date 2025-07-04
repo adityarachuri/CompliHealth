@@ -1,173 +1,386 @@
 "use client"
 
 import { useAuth } from "@/contexts/auth-context"
+import { MainLayout } from "@/components/layout/main-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { FileText, Users, DollarSign, TrendingUp, Clock, CheckCircle } from "lucide-react"
-
-const dashboardData = {
-  customer: {
-    title: "Customer Dashboard",
-    stats: [
-      { label: "Active Policies", value: "2", icon: FileText, color: "text-blue-600" },
-      { label: "Pending Claims", value: "1", icon: Clock, color: "text-orange-600" },
-      { label: "Approved Claims", value: "3", icon: CheckCircle, color: "text-green-600" },
-      { label: "Total Coverage", value: "$200K", icon: DollarSign, color: "text-purple-600" },
-    ],
-    recentActivity: [
-      { type: "claim", description: "Claim CLM-2024-001 approved", amount: "$2,500", status: "approved" },
-      { type: "policy", description: "Policy renewal reminder", amount: "$500", status: "pending" },
-      { type: "payment", description: "Premium payment processed", amount: "$250", status: "completed" },
-    ],
-  },
-  hospital: {
-    title: "Hospital Dashboard",
-    stats: [
-      { label: "Claims Submitted", value: "45", icon: FileText, color: "text-blue-600" },
-      { label: "Pre-Authorizations", value: "12", icon: Clock, color: "text-orange-600" },
-      { label: "Patients Treated", value: "128", icon: Users, color: "text-green-600" },
-      { label: "Revenue This Month", value: "$125K", icon: DollarSign, color: "text-purple-600" },
-    ],
-    recentActivity: [
-      { type: "claim", description: "Emergency surgery claim submitted", amount: "$15,000", status: "submitted" },
-      {
-        type: "preauth",
-        description: "Pre-auth approved for cardiac procedure",
-        amount: "$25,000",
-        status: "approved",
-      },
-      { type: "payment", description: "Claim payment received", amount: "$8,500", status: "completed" },
-    ],
-  },
-  tpa: {
-    title: "TPA Dashboard",
-    stats: [
-      { label: "Claims to Review", value: "23", icon: FileText, color: "text-blue-600" },
-      { label: "Processed Today", value: "15", icon: CheckCircle, color: "text-green-600" },
-      { label: "Active Policies", value: "1,250", icon: Users, color: "text-orange-600" },
-      { label: "Processing Time", value: "2.3 days", icon: Clock, color: "text-purple-600" },
-    ],
-    recentActivity: [
-      { type: "claim", description: "High-value claim requires review", amount: "$45,000", status: "review" },
-      { type: "approval", description: "Batch of 12 claims approved", amount: "$28,500", status: "approved" },
-      { type: "policy", description: "New policy activated", amount: "$750", status: "active" },
-    ],
-  },
-  insurer: {
-    title: "Insurer Dashboard",
-    stats: [
-      { label: "Total Policies", value: "5,420", icon: Users, color: "text-blue-600" },
-      { label: "Claims This Month", value: "342", icon: FileText, color: "text-orange-600" },
-      { label: "Revenue", value: "$2.1M", icon: DollarSign, color: "text-green-600" },
-      { label: "Loss Ratio", value: "68%", icon: TrendingUp, color: "text-purple-600" },
-    ],
-    recentActivity: [
-      { type: "analytics", description: "Monthly claims report generated", amount: "$450K", status: "completed" },
-      { type: "policy", description: "Bulk policy renewal processed", amount: "$125K", status: "completed" },
-      { type: "alert", description: "High-risk claim flagged for review", amount: "$75K", status: "alert" },
-    ],
-  },
-}
-
-const statusColors = {
-  approved: "bg-green-100 text-green-800",
-  pending: "bg-yellow-100 text-yellow-800",
-  completed: "bg-blue-100 text-blue-800",
-  submitted: "bg-gray-100 text-gray-800",
-  review: "bg-orange-100 text-orange-800",
-  active: "bg-green-100 text-green-800",
-  alert: "bg-red-100 text-red-800",
-}
+import {
+  FileText,
+  ClipboardList,
+  Shield,
+  DollarSign,
+  Users,
+  TrendingUp,
+  Calendar,
+  Bell,
+  Activity,
+  Heart,
+} from "lucide-react"
 
 export default function DashboardPage() {
   const { user } = useAuth()
 
   if (!user) return null
 
-  const data = dashboardData[user.role]
+  const userRole = user.role
+  const userName = user.name
 
-  return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold">{data.title}</h1>
-        <p className="text-muted-foreground mt-2">
-          Welcome back, {user.name}. Here's what's happening with your account.
-        </p>
+  const renderCustomerDashboard = () => (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-gray-900">Welcome back, {userName}</h1>
+        <Button>
+          <Bell className="mr-2 h-4 w-4" />
+          Notifications
+        </Button>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {data.stats.map((stat, index) => {
-          const IconComponent = stat.icon
-          return (
-            <Card key={index}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{stat.label}</CardTitle>
-                <IconComponent className={`h-4 w-4 ${stat.color}`} />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
-                <p className="text-xs text-muted-foreground">
-                  {index % 2 === 0 ? "+12% from last month" : "Updated 2 hours ago"}
-                </p>
-              </CardContent>
-            </Card>
-          )
-        })}
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Recent Activity */}
+      {/* Key Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>Your latest transactions and updates</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Policies</CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="space-y-4">
-            {data.recentActivity.map((activity, index) => (
-              <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex-1">
-                  <p className="font-medium">{activity.description}</p>
-                  <p className="text-sm text-muted-foreground">{activity.amount}</p>
-                </div>
-                <Badge className={statusColors[activity.status as keyof typeof statusColors]}>{activity.status}</Badge>
-              </div>
-            ))}
+          <CardContent>
+            <div className="text-2xl font-bold">3</div>
+            <p className="text-xs text-muted-foreground">+1 from last month</p>
           </CardContent>
         </Card>
 
-        {/* Performance Metrics */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Claims</CardTitle>
+            <ClipboardList className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">2</div>
+            <p className="text-xs text-muted-foreground">Processing in 3-5 days</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Coverage Amount</CardTitle>
+            <Shield className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">$500K</div>
+            <p className="text-xs text-muted-foreground">Total coverage limit</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Deductible Used</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">$1,200</div>
+            <p className="text-xs text-muted-foreground">$800 remaining</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Health Summary */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Performance Metrics</CardTitle>
-            <CardDescription>Key performance indicators</CardDescription>
+            <CardTitle className="flex items-center">
+              <Heart className="mr-2 h-5 w-5 text-red-500" />
+              Your Health Summary
+            </CardTitle>
+            <CardDescription>Overview of your health metrics and goals</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4">
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">Claims Processing</span>
-                <span className="text-sm text-muted-foreground">85%</span>
+              <div className="flex justify-between text-sm mb-2">
+                <span>Annual Deductible Progress</span>
+                <span>60%</span>
               </div>
-              <Progress value={85} className="h-2" />
+              <Progress value={60} className="h-2" />
             </div>
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">Customer Satisfaction</span>
-                <span className="text-sm text-muted-foreground">92%</span>
+              <div className="flex justify-between text-sm mb-2">
+                <span>Preventive Care Visits</span>
+                <span>2/3 completed</span>
               </div>
-              <Progress value={92} className="h-2" />
+              <Progress value={67} className="h-2" />
             </div>
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">Network Utilization</span>
-                <span className="text-sm text-muted-foreground">78%</span>
+            <div className="pt-2">
+              <Button variant="outline" size="sm">
+                Schedule Checkup
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Calendar className="mr-2 h-5 w-5 text-blue-500" />
+              Upcoming Appointments
+            </CardTitle>
+            <CardDescription>Your scheduled healthcare appointments</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                <div>
+                  <p className="font-medium">Dr. Sarah Johnson</p>
+                  <p className="text-sm text-gray-600">Annual Physical</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-medium">Jan 15</p>
+                  <p className="text-xs text-gray-500">2:00 PM</p>
+                </div>
               </div>
-              <Progress value={78} className="h-2" />
+              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                <div>
+                  <p className="font-medium">Dr. Michael Chen</p>
+                  <p className="text-sm text-gray-600">Cardiology Follow-up</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-medium">Jan 22</p>
+                  <p className="text-xs text-gray-500">10:30 AM</p>
+                </div>
+              </div>
+              <Button variant="outline" className="w-full bg-transparent">
+                View All Appointments
+              </Button>
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent Activities */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Activity className="mr-2 h-5 w-5 text-green-500" />
+            Recent Activities
+          </CardTitle>
+          <CardDescription>Your latest insurance and healthcare activities</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {[
+              {
+                action: "Claim submitted for routine checkup",
+                date: "2 days ago",
+                status: "processing",
+                amount: "$150",
+              },
+              {
+                action: "Policy premium payment processed",
+                date: "1 week ago",
+                status: "completed",
+                amount: "$320",
+              },
+              {
+                action: "Prescription coverage approved",
+                date: "2 weeks ago",
+                status: "approved",
+                amount: "$45",
+              },
+            ].map((activity, index) => (
+              <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex-1">
+                  <p className="font-medium">{activity.action}</p>
+                  <p className="text-sm text-gray-600">{activity.date}</p>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <span className="font-medium">{activity.amount}</span>
+                  <Badge
+                    variant={
+                      activity.status === "completed"
+                        ? "default"
+                        : activity.status === "approved"
+                          ? "secondary"
+                          : "outline"
+                    }
+                  >
+                    {activity.status}
+                  </Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+
+  const renderHospitalDashboard = () => (
+    <div className="space-y-6">
+      <h1 className="text-3xl font-bold text-gray-900">Hospital Dashboard - {userName}</h1>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Patients</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">1,247</div>
+            <p className="text-xs text-muted-foreground">+12% from last month</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Claims</CardTitle>
+            <ClipboardList className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">89</div>
+            <p className="text-xs text-muted-foreground">Awaiting approval</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Revenue This Month</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">$2.4M</div>
+            <p className="text-xs text-muted-foreground">+8% from last month</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Bed Occupancy</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">87%</div>
+            <p className="text-xs text-muted-foreground">245/280 beds occupied</p>
           </CardContent>
         </Card>
       </div>
     </div>
   )
+
+  const renderInsurerDashboard = () => (
+    <div className="space-y-6">
+      <h1 className="text-3xl font-bold text-gray-900">Insurance Dashboard - {userName}</h1>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Members</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">45,231</div>
+            <p className="text-xs text-muted-foreground">+2.1% from last month</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Claims This Month</CardTitle>
+            <ClipboardList className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">3,247</div>
+            <p className="text-xs text-muted-foreground">-5.2% from last month</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Premium Revenue</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">$12.4M</div>
+            <p className="text-xs text-muted-foreground">+3.8% from last month</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Loss Ratio</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">78.2%</div>
+            <p className="text-xs text-muted-foreground">Within target range</p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+
+  const renderTPADashboard = () => (
+    <div className="space-y-6">
+      <h1 className="text-3xl font-bold text-gray-900">TPA Dashboard - {userName}</h1>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Managed Lives</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">28,456</div>
+            <p className="text-xs text-muted-foreground">Across 15 clients</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Claims Processed</CardTitle>
+            <ClipboardList className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">1,892</div>
+            <p className="text-xs text-muted-foreground">This month</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Processing Time</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">2.3 days</div>
+            <p className="text-xs text-muted-foreground">Average turnaround</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Client Satisfaction</CardTitle>
+            <Shield className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">94.5%</div>
+            <p className="text-xs text-muted-foreground">Based on surveys</p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+
+  const renderDashboard = () => {
+    switch (userRole) {
+      case "hospital":
+        return renderHospitalDashboard()
+      case "insurer":
+        return renderInsurerDashboard()
+      case "tpa":
+        return renderTPADashboard()
+      default:
+        return renderCustomerDashboard()
+    }
+  }
+
+  return <MainLayout>{renderDashboard()}</MainLayout>
 }

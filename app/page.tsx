@@ -3,7 +3,6 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
-import { MainLayout } from "@/components/layout/main-layout"
 
 export default function HomePage() {
   const { user, loading } = useAuth()
@@ -30,13 +29,5 @@ export default function HomePage() {
     )
   }
 
-  if (!user) {
-    return null // Will redirect to login
-  }
-
-  return (
-    <MainLayout>
-      <div />
-    </MainLayout>
-  )
+  return null
 }

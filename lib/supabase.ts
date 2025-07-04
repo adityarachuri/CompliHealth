@@ -1,22 +1,16 @@
 import { createClient } from "@supabase/supabase-js"
 
-/**
- * NOTE:
- * In production you MUST set these two environment variables.
- * The fall-back values below are only for local/preview usage.
- */
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://project.supabase.co"
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "public-anon-key"
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://demo.supabase.co"
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "demo-key"
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-export type UserRole = "customer" | "hospital" | "tpa" | "insurer"
-
+// Types for our application
 export interface User {
   id: string
   email: string
-  role: UserRole
   name: string
+  role: "customer" | "hospital" | "tpa" | "insurer"
   organization?: string
 }
 
@@ -30,6 +24,10 @@ export interface Policy {
   start_date: string
   end_date: string
   status: string
+  deductible: number
+  copay: number
+  out_of_pocket_max: number
+  network_type: string
 }
 
 export interface Claim {
@@ -42,7 +40,7 @@ export interface Claim {
   approved_amount?: number
   diagnosis: string
   treatment_details: string
-  status: string
+  status: "submitted" | "under_review" | "approved" | "rejected" | "paid"
   submission_date: string
   processed_date?: string
   notes?: string
@@ -52,8 +50,18 @@ export interface Provider {
   id: string
   name: string
   type: string
+  specialty?: string
   address: string
-  phone?: string
+  city: string
+  state: string
+  zip_code: string
+  phone: string
   email?: string
-  network_status: string
+  website?: string
+  network_status: "in-network" | "out-of-network"
+  rating: number
+  review_count: number
+  accepting_patients: boolean
+  languages: string[]
+  services: string[]
 }

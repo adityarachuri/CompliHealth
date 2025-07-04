@@ -2,154 +2,198 @@
 
 import type React from "react"
 
+import { useState } from "react"
+import { usePathname } from "next/navigation"
+import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Activity, FileText, Users, Building2, Shield, LogOut, Menu, X } from "lucide-react"
-import Link from "next/link"
-import { useState } from "react"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import {
+  Menu,
+  Home,
+  FileText,
+  ClipboardList,
+  Users,
+  Shield,
+  BarChart3,
+  Building2,
+  UserCheck,
+  Settings,
+  LogOut,
+} from "lucide-react"
 
-const roleConfig = {
-  customer: {
-    name: "Customer Portal",
-    icon: Users,
-    color: "bg-blue-500",
-    navigation: [
-      { href: "/dashboard", label: "Dashboard", icon: Activity },
-      { href: "/policies", label: "My Policies", icon: Shield },
-      { href: "/claims", label: "My Claims", icon: FileText },
-      { href: "/providers", label: "Find Providers", icon: Building2 },
-    ],
-  },
-  hospital: {
-    name: "Hospital Portal",
-    icon: Building2,
-    color: "bg-green-500",
-    navigation: [
-      { href: "/dashboard", label: "Dashboard", icon: Activity },
-      { href: "/claims", label: "Submit Claims", icon: FileText },
-      { href: "/pre-auth", label: "Pre-Authorization", icon: Shield },
-      { href: "/patients", label: "Patient Coverage", icon: Users },
-    ],
-  },
-  tpa: {
-    name: "TPA Portal",
-    icon: FileText,
-    color: "bg-orange-500",
-    navigation: [
-      { href: "/dashboard", label: "Dashboard", icon: Activity },
-      { href: "/claims", label: "Process Claims", icon: FileText },
-      { href: "/policies", label: "Manage Policies", icon: Shield },
-      { href: "/providers", label: "Provider Network", icon: Building2 },
-    ],
-  },
-  insurer: {
-    name: "Insurer Portal",
-    icon: Shield,
-    color: "bg-purple-500",
-    navigation: [
-      { href: "/dashboard", label: "Dashboard", icon: Activity },
-      { href: "/analytics", label: "Analytics", icon: Activity },
-      { href: "/policies", label: "All Policies", icon: Shield },
-      { href: "/claims", label: "Claims Overview", icon: FileText },
-    ],
-  },
+interface NavigationItem {
+  name: string
+  href: string
+  icon: any
+  roles: string[]
 }
+
+const navigation: NavigationItem[] = [
+  { name: "Dashboard", href: "/dashboard", icon: Home, roles: ["customer", "hospital", "tpa", "insurer"] },
+  { name: "My Policies", href: "/policies", icon: FileText, roles: ["customer"] },
+  { name: "Claims", href: "/claims", icon: ClipboardList, roles: ["customer", "hospital", "tpa", "insurer"] },
+  { name: "Find Providers", href: "/providers", icon: Users, roles: ["customer"] },
+  { name: "Coverage", href: "/coverage", icon: Shield, roles: ["customer"] },
+  { name: "Analytics", href: "/analytics", icon: BarChart3, roles: ["insurer", "tpa"] },
+  { name: "Policies", href: "/policies", icon: FileText, roles: ["insurer", "tpa"] },
+  { name: "Provider Network", href: "/providers", icon: Building2, roles: ["hospital", "insurer", "tpa"] },
+  { name: "Patient Coverage", href: "/coverage", icon: UserCheck, roles: ["hospital"] },
+  { name: "Coverage Management", href: "/coverage", icon: Shield, roles: ["tpa", "insurer"] },
+]
 
 export function MainLayout({ children }: { children: React.ReactNode }) {
   const { user, signOut } = useAuth()
+  const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  if (!user) return null
+  if (!user) {
+    return null
+  }
 
-  const config = roleConfig[user.role]
-  const IconComponent = config.icon
+  const userRole = user.role
+  const userName = user.name
+  const userInitials = userName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
-      )}
+  const filteredNavigation = navigation.filter((item) => item.roles.includes(userRole))
 
-      {/* Sidebar */}
-      <div
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } lg:static lg:inset-0`}
-      >
-        <div className="flex items-center justify-between h-16 px-6 border-b">
-          <div className="flex items-center space-x-3">
-            <div className={`p-2 rounded-lg ${config.color}`}>
-              <IconComponent className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-lg font-semibold">{config.name}</h1>
-            </div>
+  const isActive = (href: string) => {
+    if (href === "/dashboard") {
+      return pathname === "/dashboard"
+    }
+    return pathname.startsWith(href)
+  }
+
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+    } catch (error) {
+      console.error("Error signing out:", error)
+    }
+  }
+
+  const SidebarContent = () => (
+    <div className="flex h-full flex-col">
+      <div className="flex h-16 items-center border-b px-4">
+        <div className="flex items-center space-x-2">
+          <div className="h-8 w-8 rounded bg-blue-600 flex items-center justify-center">
+            <Shield className="h-5 w-5 text-white" />
           </div>
-          <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(false)}>
-            <X className="w-5 h-5" />
-          </Button>
-        </div>
-
-        <div className="p-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm">Welcome back</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-1">
-                <p className="font-medium">{user.name}</p>
-                <p className="text-sm text-muted-foreground">{user.email}</p>
-                {user.organization && (
-                  <Badge variant="secondary" className="text-xs">
-                    {user.organization}
-                  </Badge>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <nav className="px-4 space-y-2">
-          {config.navigation.map((item) => {
-            const NavIcon = item.icon
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
-                onClick={() => setSidebarOpen(false)}
-              >
-                <NavIcon className="w-5 h-5" />
-                <span>{item.label}</span>
-              </Link>
-            )
-          })}
-        </nav>
-
-        <div className="absolute bottom-4 left-4 right-4">
-          <Button variant="outline" className="w-full justify-start bg-transparent" onClick={signOut}>
-            <LogOut className="w-4 h-4 mr-2" />
-            Sign Out
-          </Button>
+          <span className="text-lg font-semibold">HealthCare Portal</span>
         </div>
       </div>
 
-      {/* Main content */}
-      <div className="lg:ml-64">
-        {/* Mobile header */}
-        <div className="lg:hidden flex items-center justify-between h-16 px-4 bg-white border-b">
-          <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
-            <Menu className="w-5 h-5" />
-          </Button>
-          <h1 className="font-semibold">{config.name}</h1>
-          <div className="w-10" /> {/* Spacer */}
-        </div>
+      <nav className="flex-1 space-y-1 px-2 py-4">
+        {filteredNavigation.map((item) => {
+          const Icon = item.icon
+          const active = isActive(item.href)
 
-        {/* Page content */}
-        <main className="p-4 lg:p-8">{children}</main>
+          return (
+            <Link
+              key={item.name}
+              href={item.href}
+              onClick={() => setSidebarOpen(false)}
+              className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors ${
+                active
+                  ? "bg-blue-100 text-blue-900 border-r-2 border-blue-600"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              }`}
+            >
+              <Icon
+                className={`mr-3 h-5 w-5 flex-shrink-0 ${
+                  active ? "text-blue-600" : "text-gray-400 group-hover:text-gray-500"
+                }`}
+              />
+              {item.name}
+            </Link>
+          )
+        })}
+      </nav>
+
+      <div className="border-t p-4">
+        <div className="flex items-center space-x-3">
+          <Avatar className="h-8 w-8">
+            <AvatarFallback className="bg-blue-600 text-white text-xs">{userInitials}</AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-900 truncate">{userName}</p>
+            <p className="text-xs text-gray-500 truncate capitalize">{userRole}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
+  return (
+    <div className="flex h-screen bg-gray-50">
+      {/* Desktop Sidebar */}
+      <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0">
+        <div className="flex flex-col flex-grow bg-white border-r border-gray-200 overflow-y-auto">
+          <SidebarContent />
+        </div>
+      </div>
+
+      {/* Mobile Sidebar */}
+      <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+        <SheetContent side="left" className="p-0 w-64">
+          <SidebarContent />
+        </SheetContent>
+      </Sheet>
+
+      {/* Main Content */}
+      <div className="flex flex-col flex-1 lg:pl-64">
+        {/* Top Header */}
+        <header className="bg-white shadow-sm border-b border-gray-200">
+          <div className="flex items-center justify-between px-4 py-4">
+            <div className="flex items-center space-x-4">
+              <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="sm" className="lg:hidden">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+              </Sheet>
+
+              <h1 className="text-xl font-semibold text-gray-900">
+                {filteredNavigation.find((item) => isActive(item.href))?.name || "Dashboard"}
+              </h1>
+            </div>
+
+            <div className="flex items-center space-x-4">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex items-center space-x-2">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="bg-blue-600 text-white text-xs">{userInitials}</AvatarFallback>
+                    </Avatar>
+                    <span className="hidden md:block text-sm font-medium">{userName}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem>
+                    <Settings className="mr-2 h-4 w-4" />
+                    Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        </header>
+
+        {/* Page Content */}
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-6">{children}</div>
+        </main>
       </div>
     </div>
   )

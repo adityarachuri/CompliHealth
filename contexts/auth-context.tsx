@@ -1,9 +1,16 @@
 "use client"
 
 import type React from "react"
-
 import { createContext, useContext, useEffect, useState } from "react"
-import { supabase, type User } from "@/lib/supabase"
+import { useRouter } from "next/navigation"
+
+interface User {
+  id: string
+  email: string
+  name: string
+  role: "customer" | "hospital" | "tpa" | "insurer"
+  organization?: string
+}
 
 interface AuthContextType {
   user: User | null
@@ -14,63 +21,99 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+// Demo users for testing
+const demoUsers: Record<string, User> = {
+  "customer@demo.com": {
+    id: "customer-1",
+    email: "customer@demo.com",
+    name: "John Doe",
+    role: "customer",
+  },
+  "hospital@demo.com": {
+    id: "hospital-1",
+    email: "hospital@demo.com",
+    name: "Dr. Sarah Johnson",
+    role: "hospital",
+    organization: "City General Hospital",
+  },
+  "tpa@demo.com": {
+    id: "tpa-1",
+    email: "tpa@demo.com",
+    name: "Michael Chen",
+    role: "tpa",
+    organization: "Healthcare TPA Services",
+  },
+  "insurer@demo.com": {
+    id: "insurer-1",
+    email: "insurer@demo.com",
+    name: "Lisa Wang",
+    role: "insurer",
+    organization: "HealthFirst Insurance",
+  },
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        fetchUserProfile(session.user.id)
-      } else {
-        setLoading(false)
+    // Check for stored user session
+    const storedUser = localStorage.getItem("healthcare-user")
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser))
+      } catch (error) {
+        console.error("Error parsing stored user:", error)
+        localStorage.removeItem("healthcare-user")
       }
-    })
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        await fetchUserProfile(session.user.id)
-      } else {
-        setUser(null)
-        setLoading(false)
-      }
-    })
-
-    return () => subscription.unsubscribe()
+    }
+    setLoading(false)
   }, [])
 
-  const fetchUserProfile = async (userId: string) => {
+  const signIn = async (email: string, password: string) => {
+    setLoading(true)
     try {
-      const { data, error } = await supabase.from("users").select("*").eq("id", userId).single()
-
-      if (error) throw error
-      setUser(data)
+      // Demo authentication - in production, this would be a real API call
+      const demoUser = demoUsers[email.toLowerCase()]
+      if (demoUser && password === "demo123") {
+        setUser(demoUser)
+        localStorage.setItem("healthcare-user", JSON.stringify(demoUser))
+        router.push("/dashboard")
+      } else {
+        throw new Error("Invalid credentials")
+      }
     } catch (error) {
-      console.error("Error fetching user profile:", error)
+      throw error
     } finally {
       setLoading(false)
     }
   }
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) throw error
-  }
-
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut()
-    if (error) throw error
-    setUser(null)
+    setLoading(true)
+    try {
+      setUser(null)
+      localStorage.removeItem("healthcare-user")
+      router.push("/login")
+    } catch (error) {
+      console.error("Error signing out:", error)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  return <AuthContext.Provider value={{ user, loading, signIn, signOut }}>{children}</AuthContext.Provider>
+  const value = {
+    user,
+    loading,
+    signIn,
+    signOut,
+  }
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
-export const useAuth = () => {
+export function useAuth() {
   const context = useContext(AuthContext)
   if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider")
