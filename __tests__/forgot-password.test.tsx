@@ -1,61 +1,133 @@
-import { render, screen } from "@testing-library/react"
+import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { useRouter } from "next/navigation"
 import ForgotPasswordPage from "@/app/forgot-password/page"
-import jest from "jest" // Import jest to fix the undeclared variable error
+import jest from "jest" // Import jest to declare it
 
-// Mock Next.js router
-jest.mock("next/navigation", () => ({
-  useRouter: jest.fn(),
-}))
+// Mock the dependencies
+jest.mock("next/navigation")
+jest.mock("@/lib/email-service")
 
 const mockPush = jest.fn()
-const mockRouter = useRouter as jest.MockedFunction<typeof useRouter>
+
+beforeEach(() => {
+  ;(useRouter as jest.Mock).mockReturnValue({
+    push: mockPush,
+  })
+})
 
 describe("ForgotPasswordPage", () => {
   beforeEach(() => {
-    mockRouter.mockReturnValue({
-      push: mockPush,
-      back: jest.fn(),
-      forward: jest.fn(),
-      refresh: jest.fn(),
-      replace: jest.fn(),
-      prefetch: jest.fn(),
-    })
-    mockPush.mockClear()
-  })
-
-  afterEach(() => {
     jest.clearAllMocks()
   })
 
-  describe("Initial Render", () => {
-    it("renders forgot password form with all elements", () => {
-      render(<ForgotPasswordPage />)
+  it("should render forgot password form", () => {
+    render(<ForgotPasswordPage />)
 
-      expect(screen.getByText("Forgot Password?")).toBeInTheDocument()
-      expect(
-        screen.getByText("Enter your email address and we'll send you instructions to reset your password"),
-      ).toBeInTheDocument()
-      expect(screen.getByLabelText("Email Address")).toBeInTheDocument()
-      expect(screen.getByRole("button", { name: "Send Reset Instructions" })).toBeInTheDocument()
-      expect(screen.getByText("Back to Sign In")).toBeInTheDocument()
-      expect(screen.getByText("Demo Mode")).toBeInTheDocument()
+    expect(screen.getByText("Reset Your Password")).toBeInTheDocument()
+    expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
+    expect(screen.getByText("Send Reset Link")).toBeInTheDocument()
+  })
+
+  it("should validate email input", async () => {
+    const user = userEvent.setup()
+    render(<ForgotPasswordPage />)
+
+    const emailInput = screen.getByLabelText(/email/i)
+    const submitButton = screen.getByText("Send Reset Link")
+
+    // Try to submit without email
+    await user.click(submitButton)
+
+    await waitFor(() => {
+      expect(screen.getByText(/email is required/i)).toBeInTheDocument()
+    })
+
+    // Try with invalid email
+    await user.type(emailInput, "invalid-email")
+    await user.click(submitButton)
+
+    await waitFor(() => {
+      expect(screen.getByText(/please enter a valid email address/i)).toBeInTheDocument()
     })
   })
 
-  describe("Form Validation", () => {
-    it("enables submit button when email is entered", async () => {
-      const user = userEvent.setup()
-      render(<ForgotPasswordPage />)
+  it("should handle form submission", async () => {
+    const user = userEvent.setup()
+    const { sendPasswordResetEmail } = require("@/lib/email-service")
+    sendPasswordResetEmail.mockResolvedValue({ success: true })
 
-      const emailInput = screen.getByLabelText("Email Address")
-      const submitButton = screen.getByRole("button", { name: "Send Reset Instructions" })
+    render(<ForgotPasswordPage />)
 
-      expect(submitButton).toBeDisabled()
+    const emailInput = screen.getByLabelText(/email/i)
+    const submitButton = screen.getByText("Send Reset Link")
 
-      await user.type(emailInput, "test@example.com")
-      expect(submitButton).toBeEnabled()
+    await user.type(emailInput, "test@example.com")
+    await user.click(submitButton)
+
+    await waitFor(() => {
+      expect(sendPasswordResetEmail).toHaveBeenCalledWith("test@example.com")
     })
+  })
+
+  it("should show success message", async () => {
+    const user = userEvent.setup()
+    const { sendPasswordResetEmail } = require("@/lib/email-service")
+    sendPasswordResetEmail.mockResolvedValue({ success: true })
+
+    render(<ForgotPasswordPage />)
+
+    const emailInput = screen.getByLabelText(/email/i)
+    const submitButton = screen.getByText("Send Reset Link")
+
+    await user.type(emailInput, "test@example.com")
+    await user.click(submitButton)
+
+    await waitFor(() => {
+      expect(screen.getByText(/check your email/i)).toBeInTheDocument()
+    })
+  })
+
+  it("should handle submission error", async () => {
+    const user = userEvent.setup()
+    const { sendPasswordResetEmail } = require("@/lib/email-service")
+    sendPasswordResetEmail.mockRejectedValue(new Error("Email not found"))
+
+    render(<ForgotPasswordPage />)
+
+    const emailInput = screen.getByLabelText(/email/i)
+    const submitButton = screen.getByText("Send Reset Link")
+
+    await user.type(emailInput, "notfound@example.com")
+    await user.click(submitButton)
+
+    await waitFor(() => {
+      expect(screen.getByText(/email not found/i)).toBeInTheDocument()
+    })
+  })
+
+  it("should show loading state during submission", async () => {
+    const user = userEvent.setup()
+    const { sendPasswordResetEmail } = require("@/lib/email-service")
+    sendPasswordResetEmail.mockImplementation(() => new Promise((resolve) => setTimeout(resolve, 1000)))
+
+    render(<ForgotPasswordPage />)
+
+    const emailInput = screen.getByLabelText(/email/i)
+    const submitButton = screen.getByText("Send Reset Link")
+
+    await user.type(emailInput, "test@example.com")
+    await user.click(submitButton)
+
+    expect(screen.getByText(/sending/i)).toBeInTheDocument()
+    expect(submitButton).toBeDisabled()
+  })
+
+  it("should have link back to login", () => {
+    render(<ForgotPasswordPage />)
+
+    const loginLink = screen.getByText("Back to Login")
+    expect(loginLink).toBeInTheDocument()
+    expect(loginLink.closest("a")).toHaveAttribute("href", "/login")
   })
 })

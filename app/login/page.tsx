@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -28,33 +27,41 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      const { error } = await signIn(email, password)
+      console.log("📝 Form submitted with:", email, "password length:", password.length)
+      const result = await signIn(email, password)
 
-      if (error) {
-        setError(error)
+      if (result.error) {
+        console.error("❌ Login failed:", result.error)
+        setError(result.error)
       } else {
+        console.log("✅ Login successful, redirecting to dashboard")
         router.push("/dashboard")
       }
     } catch (err) {
+      console.error("💥 Login error:", err)
       setError("An unexpected error occurred")
     } finally {
       setLoading(false)
     }
   }
 
-  const handleDemoLogin = async () => {
+  const handleDemoLogin = async (demoEmail: string, demoPassword: string) => {
+    console.log("🎭 Demo login clicked for:", demoEmail)
     setError("")
     setLoading(true)
 
     try {
-      const { error } = await signIn("demo@healthinsurance.com", "demo123456")
+      const result = await signIn(demoEmail, demoPassword)
 
-      if (error) {
-        setError(error)
+      if (result.error) {
+        console.error("❌ Demo login failed:", result.error)
+        setError(result.error)
       } else {
+        console.log("✅ Demo login successful, redirecting to dashboard")
         router.push("/dashboard")
       }
     } catch (err) {
+      console.error("💥 Demo login error:", err)
       setError("Demo login failed")
     } finally {
       setLoading(false)
@@ -127,17 +134,58 @@ export default function LoginPage() {
                 <span className="w-full border-t" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">Or try demo</span>
+                <span className="bg-background px-2 text-muted-foreground">Demo Accounts</span>
               </div>
             </div>
-            <Button
-              variant="outline"
-              className="w-full mt-4 bg-transparent"
-              onClick={handleDemoLogin}
-              disabled={loading}
-            >
-              Demo Login
-            </Button>
+
+            <div className="mt-4 space-y-2">
+              <Button
+                variant="outline"
+                className="w-full bg-transparent"
+                onClick={() => handleDemoLogin("demo@healthinsurance.com", "demo123456")}
+                disabled={loading}
+              >
+                Demo Customer Login
+              </Button>
+
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleDemoLogin("hospital@demo.com", "demo123456")}
+                  disabled={loading}
+                >
+                  Hospital
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleDemoLogin("tpa@demo.com", "demo123456")}
+                  disabled={loading}
+                >
+                  TPA
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleDemoLogin("insurer@demo.com", "demo123456")}
+                  disabled={loading}
+                >
+                  Insurance
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleDemoLogin("admin@demo.com", "admin123456")}
+                  disabled={loading}
+                >
+                  Admin
+                </Button>
+              </div>
+            </div>
           </div>
 
           <div className="mt-6 text-center space-y-2">

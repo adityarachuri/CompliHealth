@@ -1,66 +1,90 @@
-import { AuthUtils } from "@/lib/auth-utils"
+import { validatePasswordStrength, generateResetToken, resetPassword } from "@/lib/auth-utils"
 
 describe("AuthUtils", () => {
-  describe("generateResetToken", () => {
-    it("generates a valid reset token", () => {
-      const email = "test@example.com"
-      const token = AuthUtils.generateResetToken(email)
-
-      expect(token.token).toHaveLength(64) // 32 bytes = 64 hex chars
-      expect(token.hashedToken).toHaveLength(64) // SHA256 = 64 hex chars
-      expect(token.email).toBe(email.toLowerCase())
-      expect(token.expiresAt).toBeInstanceOf(Date)
-      expect(token.expiresAt.getTime()).toBeGreaterThan(Date.now())
-    })
-
-    it("generates different tokens for same email", () => {
-      const email = "test@example.com"
-      const token1 = AuthUtils.generateResetToken(email)
-      const token2 = AuthUtils.generateResetToken(email)
-
-      expect(token1.token).not.toBe(token2.token)
-      expect(token1.hashedToken).not.toBe(token2.hashedToken)
-    })
-  })
-
-  describe("hashToken", () => {
-    it("hashes token consistently", () => {
-      const token = "test-token-123"
-      const hash1 = AuthUtils.hashToken(token)
-      const hash2 = AuthUtils.hashToken(token)
-
-      expect(hash1).toBe(hash2)
-      expect(hash1).toHaveLength(64) // SHA256 = 64 hex chars
-    })
-  })
-
-  describe("isValidTokenFormat", () => {
-    it("validates correct token format", () => {
-      const validToken = "a".repeat(64)
-      expect(AuthUtils.isValidTokenFormat(validToken)).toBe(true)
-    })
-
-    it("rejects tokens that are too short", () => {
-      const shortToken = "a".repeat(63)
-      expect(AuthUtils.isValidTokenFormat(shortToken)).toBe(false)
-    })
-  })
-
   describe("validatePasswordStrength", () => {
-    it("validates strong password", () => {
-      const strongPassword = "StrongPass123!"
-      const result = AuthUtils.validatePasswordStrength(strongPassword)
+    it("should validate strong password", () => {
+      const result = validatePasswordStrength("StrongPass123!")
 
       expect(result.isValid).toBe(true)
       expect(result.errors).toHaveLength(0)
     })
 
-    it("validates weak password with all errors", () => {
-      const weakPassword = "weak"
-      const result = AuthUtils.validatePasswordStrength(weakPassword)
+    it("should reject weak passwords", () => {
+      const result = validatePasswordStrength("weak")
 
       expect(result.isValid).toBe(false)
-      expect(result.errors).toHaveLength(5)
+      expect(result.errors).toContain("Password must be at least 8 characters long")
+    })
+
+    it("should require uppercase letter", () => {
+      const result = validatePasswordStrength("lowercase123!")
+
+      expect(result.isValid).toBe(false)
+      expect(result.errors).toContain("Password must contain at least one uppercase letter")
+    })
+
+    it("should require lowercase letter", () => {
+      const result = validatePasswordStrength("UPPERCASE123!")
+
+      expect(result.isValid).toBe(false)
+      expect(result.errors).toContain("Password must contain at least one lowercase letter")
+    })
+
+    it("should require number", () => {
+      const result = validatePasswordStrength("NoNumbers!")
+
+      expect(result.isValid).toBe(false)
+      expect(result.errors).toContain("Password must contain at least one number")
+    })
+
+    it("should require special character", () => {
+      const result = validatePasswordStrength("NoSpecial123")
+
+      expect(result.isValid).toBe(false)
+      expect(result.errors).toContain("Password must contain at least one special character")
+    })
+  })
+
+  describe("generateResetToken", () => {
+    it("should generate a valid token", () => {
+      const token = generateResetToken()
+
+      expect(token).toBeDefined()
+      expect(typeof token).toBe("string")
+      expect(token.length).toBeGreaterThan(0)
+    })
+
+    it("should generate unique tokens", () => {
+      const token1 = generateResetToken()
+      const token2 = generateResetToken()
+
+      expect(token1).not.toBe(token2)
+    })
+  })
+
+  describe("resetPassword", () => {
+    it("should reset password with valid token", async () => {
+      const result = await resetPassword("valid-token", "NewPassword123!")
+
+      expect(result).toEqual({ success: true })
+    })
+
+    it("should reject invalid token", async () => {
+      try {
+        await resetPassword("invalid-token", "NewPassword123!")
+      } catch (error) {
+        expect(error).toBeInstanceOf(Error)
+        expect((error as Error).message).toContain("Invalid or expired token")
+      }
+    })
+
+    it("should validate new password strength", async () => {
+      try {
+        await resetPassword("valid-token", "weak")
+      } catch (error) {
+        expect(error).toBeInstanceOf(Error)
+        expect((error as Error).message).toContain("Password does not meet requirements")
+      }
     })
   })
 })

@@ -3,9 +3,10 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Shield, Heart, Users, BarChart3 } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Shield, Users, FileText, BarChart3, Heart, CheckCircle } from "lucide-react"
+import Link from "next/link"
 
 export default function HomePage() {
   const { user, loading } = useAuth()
@@ -25,102 +26,187 @@ export default function HomePage() {
     )
   }
 
-  if (user) {
-    return null // Will redirect to dashboard
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="container mx-auto px-4 py-16">
-        <div className="text-center mb-16">
-          <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
-            Your Health Insurance
-            <span className="text-primary block">Made Simple</span>
-          </h1>
-          <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-            Manage your health insurance, track claims, find providers, and access your health data all in one secure
-            platform.
+      {/* Header */}
+      <header className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
+            <div className="flex items-center">
+              <Shield className="h-8 w-8 text-primary mr-3" />
+              <h1 className="text-2xl font-bold text-gray-900">HealthCare Insurance Portal</h1>
+            </div>
+            <div className="flex space-x-4">
+              <Link href="/login">
+                <Button variant="outline">Sign In</Button>
+              </Link>
+              <Link href="/register">
+                <Button>Get Started</Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Hero Section */}
+      <section className="py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-4xl font-bold text-gray-900 mb-6">Comprehensive Healthcare Insurance Management</h2>
+          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+            Streamline your healthcare insurance experience with our all-in-one platform. Manage claims, find providers,
+            track policies, and get predictive insights.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" onClick={() => router.push("/login")}>
-              Sign In
-            </Button>
-            <Button size="lg" variant="outline" onClick={() => router.push("/register")}>
-              Get Started
-            </Button>
+          <div className="flex justify-center space-x-4">
+            <Link href="/login">
+              <Button size="lg" className="px-8">
+                Sign In to Dashboard
+              </Button>
+            </Link>
+            <Link href="/register">
+              <Button size="lg" variant="outline" className="px-8 bg-transparent">
+                Create Account
+              </Button>
+            </Link>
           </div>
         </div>
+      </section>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-          <Card className="text-center">
-            <CardHeader>
-              <Shield className="h-12 w-12 text-primary mx-auto mb-4" />
-              <CardTitle>Secure Coverage</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>
-                Your health data is protected with enterprise-grade security and encryption.
-              </CardDescription>
-            </CardContent>
-          </Card>
+      {/* Features Section */}
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h3 className="text-3xl font-bold text-gray-900 mb-4">Platform Features</h3>
+            <p className="text-lg text-gray-600">Everything you need to manage your healthcare insurance</p>
+          </div>
 
-          <Card className="text-center">
-            <CardHeader>
-              <Heart className="h-12 w-12 text-primary mx-auto mb-4" />
-              <CardTitle>Health Tracking</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>
-                Monitor your health metrics and get insights into your wellness journey.
-              </CardDescription>
-            </CardContent>
-          </Card>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <Card>
+              <CardHeader>
+                <FileText className="h-10 w-10 text-primary mb-2" />
+                <CardTitle>Claims Management</CardTitle>
+                <CardDescription>
+                  Submit, track, and manage insurance claims with real-time status updates
+                </CardDescription>
+              </CardHeader>
+            </Card>
 
-          <Card className="text-center">
-            <CardHeader>
-              <Users className="h-12 w-12 text-primary mx-auto mb-4" />
-              <CardTitle>Provider Network</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>Find and book appointments with healthcare providers in your network.</CardDescription>
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader>
+                <Users className="h-10 w-10 text-primary mb-2" />
+                <CardTitle>Provider Directory</CardTitle>
+                <CardDescription>Find healthcare providers, check availability, and book appointments</CardDescription>
+              </CardHeader>
+            </Card>
 
-          <Card className="text-center">
-            <CardHeader>
-              <BarChart3 className="h-12 w-12 text-primary mx-auto mb-4" />
-              <CardTitle>Smart Analytics</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>Get predictive insights and analytics about your health and costs.</CardDescription>
-            </CardContent>
-          </Card>
-        </div>
+            <Card>
+              <CardHeader>
+                <BarChart3 className="h-10 w-10 text-primary mb-2" />
+                <CardTitle>Analytics & Insights</CardTitle>
+                <CardDescription>
+                  Get predictive analytics and insights about your healthcare costs and trends
+                </CardDescription>
+              </CardHeader>
+            </Card>
 
-        <div className="text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8">Everything you need to manage your health insurance</h2>
-          <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-            <div>
-              <h3 className="text-xl font-semibold mb-4">Claims Management</h3>
-              <p className="text-gray-600">
-                Submit, track, and manage your insurance claims with real-time updates and notifications.
-              </p>
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold mb-4">Policy Overview</h3>
-              <p className="text-gray-600">
-                View your coverage details, deductibles, and benefits in an easy-to-understand format.
-              </p>
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold mb-4">Predictive Analytics</h3>
-              <p className="text-gray-600">
-                Get AI-powered insights about your health trends and potential future costs.
-              </p>
-            </div>
+            <Card>
+              <CardHeader>
+                <Shield className="h-10 w-10 text-primary mb-2" />
+                <CardTitle>Policy Management</CardTitle>
+                <CardDescription>View coverage details, benefits, and manage your insurance policies</CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <Heart className="h-10 w-10 text-primary mb-2" />
+                <CardTitle>Health Tracking</CardTitle>
+                <CardDescription>Monitor your health metrics and get personalized recommendations</CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CheckCircle className="h-10 w-10 text-primary mb-2" />
+                <CardTitle>Secure & Compliant</CardTitle>
+                <CardDescription>HIPAA compliant platform with enterprise-grade security</CardDescription>
+              </CardHeader>
+            </Card>
           </div>
         </div>
-      </div>
+      </section>
+
+      {/* Demo Section */}
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h3 className="text-3xl font-bold text-gray-900 mb-6">Try Our Demo</h3>
+          <p className="text-lg text-gray-600 mb-8">
+            Experience the platform with our demo accounts. No registration required.
+          </p>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="p-4">
+              <CardContent className="p-0">
+                <h4 className="font-semibold mb-2">Customer Demo</h4>
+                <p className="text-sm text-gray-600 mb-3">demo@healthinsurance.com</p>
+                <Link href="/login">
+                  <Button size="sm" className="w-full">
+                    Try Customer View
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card className="p-4">
+              <CardContent className="p-0">
+                <h4 className="font-semibold mb-2">Hospital Demo</h4>
+                <p className="text-sm text-gray-600 mb-3">hospital@demo.com</p>
+                <Link href="/login">
+                  <Button size="sm" variant="outline" className="w-full bg-transparent">
+                    Try Hospital View
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card className="p-4">
+              <CardContent className="p-0">
+                <h4 className="font-semibold mb-2">TPA Demo</h4>
+                <p className="text-sm text-gray-600 mb-3">tpa@demo.com</p>
+                <Link href="/login">
+                  <Button size="sm" variant="outline" className="w-full bg-transparent">
+                    Try TPA View
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card className="p-4">
+              <CardContent className="p-0">
+                <h4 className="font-semibold mb-2">Insurer Demo</h4>
+                <p className="text-sm text-gray-600 mb-3">insurer@demo.com</p>
+                <Link href="/login">
+                  <Button size="sm" variant="outline" className="w-full bg-transparent">
+                    Try Insurer View
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-white py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <Shield className="h-6 w-6 mr-2" />
+              <span className="text-lg font-semibold">HealthCare Insurance Portal</span>
+            </div>
+            <p className="text-gray-400">© 2024 Healthcare Insurance Portal. All rights reserved.</p>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }

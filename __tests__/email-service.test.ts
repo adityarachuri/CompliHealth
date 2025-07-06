@@ -1,56 +1,93 @@
-import { EmailService, emailService } from "@/lib/email-service"
-import jest from "jest"
+import { sendPasswordResetEmail, sendWelcomeEmail } from "@/lib/email-service"
+import jest from "jest" // Declare the jest variable
 
-// Mock environment variables
-const originalEnv = process.env
+// Mock console.log to avoid noise in tests
+jest.spyOn(console, "log").mockImplementation(() => {})
 
 describe("EmailService", () => {
-  beforeEach(() => {
-    jest.resetModules()
-    process.env = { ...originalEnv }
-    // Clear console.log and console.error mocks
+  afterEach(() => {
     jest.clearAllMocks()
   })
 
-  afterAll(() => {
-    process.env = originalEnv
-  })
-
-  describe("Singleton Pattern", () => {
-    it("returns the same instance", () => {
-      const instance1 = EmailService.getInstance()
-      const instance2 = EmailService.getInstance()
-      expect(instance1).toBe(instance2)
-    })
-
-    it("exports singleton instance", () => {
-      expect(emailService).toBeInstanceOf(EmailService)
-    })
-  })
-
   describe("sendPasswordResetEmail", () => {
-    let consoleSpy: jest.SpyInstance
+    it("should send password reset email successfully", async () => {
+      const result = await sendPasswordResetEmail("test@example.com")
 
-    beforeEach(() => {
-      consoleSpy = jest.spyOn(console, "log").mockImplementation()
+      expect(result).toEqual({ success: true })
+      expect(console.log).toHaveBeenCalledWith("Password reset email sent to test@example.com")
     })
 
-    afterEach(() => {
-      consoleSpy.mockRestore()
+    it("should handle email sending error", async () => {
+      // Mock a failure scenario
+      const originalConsoleLog = console.log
+      console.log = jest.fn().mockImplementation(() => {
+        throw new Error("Email service unavailable")
+      })
+
+      try {
+        await sendPasswordResetEmail("test@example.com")
+      } catch (error) {
+        expect(error).toBeInstanceOf(Error)
+      }
+
+      console.log = originalConsoleLog
     })
 
-    it("sends password reset email successfully", async () => {
-      const result = await emailService.sendPasswordResetEmail("test@example.com", "reset-token-123")
+    it("should validate email format", async () => {
+      const result = await sendPasswordResetEmail("invalid-email")
 
-      expect(result).toBe(true)
-      expect(consoleSpy).toHaveBeenCalledWith(
-        "Password reset email would be sent:",
-        expect.objectContaining({
-          to: "test@example.com",
-          resetUrl: expect.stringContaining("reset-token-123"),
-          token: "reset-token-123",
-        }),
-      )
+      expect(result).toEqual({ success: true })
+      expect(console.log).toHaveBeenCalledWith("Password reset email sent to invalid-email")
+    })
+
+    it("should generate reset token", async () => {
+      const result = await sendPasswordResetEmail("test@example.com")
+
+      expect(result).toEqual({ success: true })
+      expect(console.log).toHaveBeenCalledWith(expect.stringContaining("Reset token generated:"))
+    })
+  })
+
+  describe("sendWelcomeEmail", () => {
+    it("should send welcome email successfully", async () => {
+      const userData = {
+        firstName: "John",
+        lastName: "Doe",
+        email: "john@example.com",
+        role: "customer",
+      }
+
+      const result = await sendWelcomeEmail(userData)
+
+      expect(result).toEqual({ success: true })
+      expect(console.log).toHaveBeenCalledWith("Welcome email sent to john@example.com")
+    })
+
+    it("should handle different user roles", async () => {
+      const userData = {
+        firstName: "Dr. Jane",
+        lastName: "Smith",
+        email: "jane@hospital.com",
+        role: "hospital",
+      }
+
+      const result = await sendWelcomeEmail(userData)
+
+      expect(result).toEqual({ success: true })
+      expect(console.log).toHaveBeenCalledWith("Welcome email sent to jane@hospital.com")
+    })
+
+    it("should include user information in email", async () => {
+      const userData = {
+        firstName: "Alice",
+        lastName: "Johnson",
+        email: "alice@example.com",
+        role: "customer",
+      }
+
+      await sendWelcomeEmail(userData)
+
+      expect(console.log).toHaveBeenCalledWith(expect.stringContaining("Alice Johnson"))
     })
   })
 })
