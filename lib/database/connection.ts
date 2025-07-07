@@ -1,6 +1,6 @@
-import { Pool, type PoolClient } from "pg"
-import { APP_CONFIG } from "@/lib/config/app-config"
+import { Pool, type PoolClient, type QueryResult } from "pg"
 import { logger } from "@/lib/utils/logger"
+import { APP_CONFIG } from "@/lib/config/app-config"
 
 class DatabaseConnection {
   private static instance: DatabaseConnection
@@ -11,20 +11,19 @@ class DatabaseConnection {
     this.pool = new Pool({
       connectionString: process.env.DATABASE_URL,
       max: APP_CONFIG.database.maxConnections,
-      idleTimeoutMillis: 30000,
       connectionTimeoutMillis: APP_CONFIG.database.connectionTimeout,
-      statement_timeout: APP_CONFIG.database.queryTimeout,
-      ssl: APP_CONFIG.isProduction ? { rejectUnauthorized: false } : false,
+      query_timeout: APP_CONFIG.database.queryTimeout,
+      ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
     })
 
     this.pool.on("connect", () => {
-      logger.info("Database connection established")
       this.isConnected = true
+      logger.info("Database client connected")
     })
 
     this.pool.on("error", (err) => {
-      logger.error("Database connection error:", err)
       this.isConnected = false
+      logger.error("Database connection error:", err)
     })
   }
 
@@ -35,51 +34,53 @@ class DatabaseConnection {
     return DatabaseConnection.instance
   }
 
-  public async getClient(): Promise<PoolClient> {
-    try {
-      const client = await this.pool.connect()
-      return client
-    } catch (error) {
-      logger.error("Failed to get database client:", error)
-      throw new Error("Database connection failed")
-    }
-  }
+  public async query(text: string, params?: any[]): Promise<QueryResult> {
+    const start = Date.now()
+    let client: PoolClient | null = null
 
-  public async query(text: string, params?: any[]): Promise<any> {
-    const client = await this.getClient()
     try {
-      const start = Date.now()
+      client = await this.pool.connect()
       const result = await client.query(text, params)
       const duration = Date.now() - start
 
       logger.debug("Query executed", {
         query: text,
         duration,
-        rows: result.rowCount,
+        rows: result.rowCount || 0,
       })
 
       return result
     } catch (error) {
-      logger.error("Database query error:", error)
+      logger.error("Database query error:", { query: text, error })
       throw error
     } finally {
-      client.release()
+      if (client) {
+        client.release()
+      }
     }
   }
 
   public async transaction<T>(callback: (client: PoolClient) => Promise<T>): Promise<T> {
-    const client = await this.getClient()
+    let client: PoolClient | null = null
+
     try {
+      client = await this.pool.connect()
       await client.query("BEGIN")
+
       const result = await callback(client)
+
       await client.query("COMMIT")
       return result
     } catch (error) {
-      await client.query("ROLLBACK")
+      if (client) {
+        await client.query("ROLLBACK")
+      }
       logger.error("Transaction error:", error)
       throw error
     } finally {
-      client.release()
+      if (client) {
+        client.release()
+      }
     }
   }
 
@@ -99,7 +100,6 @@ class DatabaseConnection {
 
   public async close(): Promise<void> {
     await this.pool.end()
-    this.isConnected = false
     logger.info("Database connection pool closed")
   }
 }

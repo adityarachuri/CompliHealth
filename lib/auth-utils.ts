@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from "@/lib/supabase"
 import { sendEmail } from "@/lib/email-service"
+import { randomUUID } from "crypto"
 
 export interface User {
   id: string
@@ -429,4 +430,92 @@ export async function resetPassword(newPassword: string): Promise<{ error?: stri
     console.error("Error resetting password:", error)
     return { error: "An unexpected error occurred while resetting password" }
   }
+}
+
+/**
+ * Password strength validator.
+ * Rules: ≥ 8 characters, uppercase, lowercase, digit, special char
+ */
+export function validatePasswordStrength(password: string): boolean {
+  const lengthOK = password.length >= 8
+  const upperOK = /[A-Z]/.test(password)
+  const lowerOK = /[a-z]/.test(password)
+  const digitOK = /[0-9]/.test(password)
+  const specialOK = /[^A-Za-z0-9]/.test(password)
+  return lengthOK && upperOK && lowerOK && digitOK && specialOK
+}
+
+/** Generates a cryptographically-secure reset token */
+export function generateResetToken(): string {
+  return randomUUID()
+}
+
+/**
+ * Validate a user's password against stored credentials.
+ */
+export async function validatePassword(email: string, password: string): Promise<boolean> {
+  const demoUser = findDemoUser(email, password)
+  if (demoUser) return true
+
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password: password.trim(),
+    })
+    return !!data.user && !error
+  }
+
+  return false
+}
+
+/**
+ * Get all users (demo + Supabase where available).
+ */
+export async function getAllUsers(): Promise<User[]> {
+  const demo = DEMO_USERS.map((d) => d.user)
+
+  if (!isSupabaseConfigured()) return demo
+
+  const { data, error } = await supabase.from("user_profiles").select("*")
+  if (error || !data) return demo
+
+  const supabaseUsers: User[] = data.map((profile: any) => ({
+    id: profile.id,
+    email: profile.email,
+    firstName: profile.first_name || "",
+    lastName: profile.last_name || "",
+    phone: profile.phone || undefined,
+    dateOfBirth: profile.date_of_birth || undefined,
+    role: profile.role,
+    organization: profile.organization || undefined,
+    avatarUrl: profile.avatar_url || undefined,
+    isActive: profile.is_active,
+    emailVerified: profile.email_verified,
+    lastLogin: profile.last_login || undefined,
+    preferences: profile.preferences,
+    createdAt: profile.created_at,
+    updatedAt: profile.updated_at,
+  }))
+
+  return [...demo, ...supabaseUsers]
+}
+
+/**
+ * Activate / deactivate a user.
+ */
+export async function updateUserStatus(userId: string, isActive: boolean): Promise<{ error?: string }> {
+  // Demo users: mutate in-memory object for immediate feedback
+  const demoIdx = DEMO_USERS.findIndex((d) => d.user.id === userId)
+  if (demoIdx !== -1) {
+    DEMO_USERS[demoIdx].user.isActive = isActive
+  }
+
+  if (!isSupabaseConfigured()) return {}
+
+  const { error } = await supabase
+    .from("user_profiles")
+    .update({ is_active: isActive, updated_at: new Date().toISOString() })
+    .eq("id", userId)
+
+  return error ? { error: error.message } : {}
 }

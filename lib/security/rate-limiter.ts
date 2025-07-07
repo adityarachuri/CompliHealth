@@ -1,148 +1,109 @@
 import { cache } from "@/lib/utils/cache"
-import { APP_CONFIG } from "@/lib/config/app-config"
 import { logger } from "@/lib/utils/logger"
 
-export interface RateLimitOptions {
-  windowMs?: number
-  maxRequests?: number
+interface RateLimitConfig {
+  windowMs: number
+  maxRequests: number
   keyGenerator?: (identifier: string) => string
-  skipSuccessfulRequests?: boolean
-  skipFailedRequests?: boolean
 }
 
-export interface RateLimitResult {
-  allowed: boolean
-  remaining: number
+interface RateLimitInfo {
+  count: number
   resetTime: number
-  totalHits: number
 }
 
 export class RateLimiter {
-  private options: Required<RateLimitOptions>
+  private config: RateLimitConfig
 
-  constructor(options: RateLimitOptions = {}) {
-    this.options = {
-      windowMs: options.windowMs || APP_CONFIG.rateLimit.windowMs,
-      maxRequests: options.maxRequests || APP_CONFIG.rateLimit.maxRequests,
-      keyGenerator: options.keyGenerator || ((id: string) => `rate_limit:${id}`),
-      skipSuccessfulRequests: options.skipSuccessfulRequests || false,
-      skipFailedRequests: options.skipFailedRequests || false,
+  constructor(config: RateLimitConfig) {
+    this.config = {
+      keyGenerator: (id) => `rate_limit:${id}`,
+      ...config,
     }
   }
 
-  public async checkLimit(identifier: string): Promise<RateLimitResult> {
-    const key = this.options.keyGenerator(identifier)
+  public async checkLimit(identifier: string): Promise<{ allowed: boolean; remaining: number; resetTime: number }> {
+    const key = this.config.keyGenerator!(identifier)
     const now = Date.now()
-    const windowStart = now - this.options.windowMs
+    const windowStart = now - this.config.windowMs
 
     try {
-      // Get current window data
-      const windowData = await cache.get<{
-        requests: Array<{ timestamp: number; success?: boolean }>
-        resetTime: number
-      }>(key)
+      // Get current rate limit info
+      const rateLimitInfo = await cache.get<RateLimitInfo>(key)
 
-      let requests = windowData?.requests || []
-      let resetTime = windowData?.resetTime || now + this.options.windowMs
+      if (!rateLimitInfo || rateLimitInfo.resetTime <= now) {
+        // First request or window expired
+        const newInfo: RateLimitInfo = {
+          count: 1,
+          resetTime: now + this.config.windowMs,
+        }
 
-      // Remove expired requests
-      requests = requests.filter((req) => req.timestamp > windowStart)
+        await cache.set(key, newInfo, Math.ceil(this.config.windowMs / 1000))
 
-      // Check if we're in a new window
-      if (now >= resetTime) {
-        requests = []
-        resetTime = now + this.options.windowMs
+        return {
+          allowed: true,
+          remaining: this.config.maxRequests - 1,
+          resetTime: newInfo.resetTime,
+        }
       }
 
-      const totalHits = requests.length
-      const remaining = Math.max(0, this.options.maxRequests - totalHits)
-      const allowed = totalHits < this.options.maxRequests
+      if (rateLimitInfo.count >= this.config.maxRequests) {
+        // Rate limit exceeded
+        logger.warn("Rate limit exceeded", {
+          identifier,
+          count: rateLimitInfo.count,
+          maxRequests: this.config.maxRequests,
+        })
 
-      // Update cache with new request
-      if (allowed) {
-        requests.push({ timestamp: now })
-        await cache.set(key, { requests, resetTime }, Math.ceil(this.options.windowMs / 1000))
+        return {
+          allowed: false,
+          remaining: 0,
+          resetTime: rateLimitInfo.resetTime,
+        }
       }
+
+      // Increment counter
+      const updatedInfo: RateLimitInfo = {
+        count: rateLimitInfo.count + 1,
+        resetTime: rateLimitInfo.resetTime,
+      }
+
+      await cache.set(key, updatedInfo, Math.ceil((rateLimitInfo.resetTime - now) / 1000))
 
       return {
-        allowed,
-        remaining,
-        resetTime,
-        totalHits,
+        allowed: true,
+        remaining: this.config.maxRequests - updatedInfo.count,
+        resetTime: updatedInfo.resetTime,
       }
     } catch (error) {
       logger.error("Rate limiter error:", error)
-      // On error, allow the request but log it
+      // Allow request on error to avoid blocking legitimate users
       return {
         allowed: true,
-        remaining: this.options.maxRequests,
-        resetTime: now + this.options.windowMs,
-        totalHits: 0,
+        remaining: this.config.maxRequests - 1,
+        resetTime: now + this.config.windowMs,
       }
     }
   }
 
-  public async recordRequest(identifier: string, success = true): Promise<void> {
-    if ((success && this.options.skipSuccessfulRequests) || (!success && this.options.skipFailedRequests)) {
-      return
-    }
-
-    const key = this.options.keyGenerator(identifier)
-    const now = Date.now()
-
-    try {
-      const windowData = await cache.get<{
-        requests: Array<{ timestamp: number; success?: boolean }>
-        resetTime: number
-      }>(key)
-
-      const requests = windowData?.requests || []
-      const resetTime = windowData?.resetTime || now + this.options.windowMs
-
-      requests.push({ timestamp: now, success })
-
-      await cache.set(key, { requests, resetTime }, Math.ceil(this.options.windowMs / 1000))
-    } catch (error) {
-      logger.error("Rate limiter record error:", error)
-    }
-  }
-
-  public async resetLimit(identifier: string): Promise<void> {
-    const key = this.options.keyGenerator(identifier)
+  public async reset(identifier: string): Promise<void> {
+    const key = this.config.keyGenerator!(identifier)
     await cache.delete(key)
   }
 }
 
-// Pre-configured rate limiters for different use cases
-export const rateLimiters = {
-  // General API rate limiter
-  api: new RateLimiter({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    maxRequests: 100,
-  }),
+// Pre-configured rate limiters
+export const authRateLimiter = new RateLimiter({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  maxRequests: 5, // 5 login attempts per 15 minutes
+})
 
-  // Authentication rate limiter
-  auth: new RateLimiter({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    maxRequests: 5,
-    skipSuccessfulRequests: true,
-  }),
+export const apiRateLimiter = new RateLimiter({
+  windowMs: 60 * 1000, // 1 minute
+  maxRequests: 100, // 100 requests per minute
+})
 
-  // Password reset rate limiter
-  passwordReset: new RateLimiter({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    maxRequests: 3,
-  }),
-
-  // File upload rate limiter
-  upload: new RateLimiter({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    maxRequests: 10,
-  }),
-
-  // Search rate limiter
-  search: new RateLimiter({
-    windowMs: 60 * 1000, // 1 minute
-    maxRequests: 30,
-  }),
-}
+export const passwordResetRateLimiter = new RateLimiter({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  maxRequests: 3, // 3 password reset attempts per hour
+})

@@ -1,59 +1,83 @@
-import winston from "winston"
-import { APP_CONFIG } from "@/lib/config/app-config"
+/**
+ * Isomorphic logger used by all shared code.
+ *
+ * • In the browser it just writes to the DevTools console.
+ * • On the server it emits one-line JSON for easy log aggregation.
+ *
+ * Nothing else is imported, so there are **no relative-path dependencies**
+ * that can break module resolution.
+ */
 
-// Custom log format
-const logFormat = winston.format.combine(
-  winston.format.timestamp(),
-  winston.format.errors({ stack: true }),
-  winston.format.json(),
-  winston.format.printf(({ timestamp, level, message, ...meta }) => {
-    return JSON.stringify({
-      timestamp,
-      level,
-      message,
-      ...meta,
-    })
-  }),
-)
+type Meta = Record<string, unknown> | undefined
 
-// Create logger instance
-export const logger = winston.createLogger({
-  level: APP_CONFIG.monitoring.logLevel,
-  format: logFormat,
-  defaultMeta: {
-    service: APP_CONFIG.name,
-    version: APP_CONFIG.version,
-    environment: APP_CONFIG.environment,
-  },
-  transports: [
-    // Console transport for development
-    new winston.transports.Console({
-      format: winston.format.combine(winston.format.colorize(), winston.format.simple()),
-    }),
-  ],
-})
-
-// Add file transport for production
-if (APP_CONFIG.isProduction) {
-  logger.add(
-    new winston.transports.File({
-      filename: "logs/error.log",
-      level: "error",
-      maxsize: 5242880, // 5MB
-      maxFiles: 5,
-    }),
-  )
-
-  logger.add(
-    new winston.transports.File({
-      filename: "logs/combined.log",
-      maxsize: 5242880, // 5MB
-      maxFiles: 5,
-    }),
-  )
+export interface Logger {
+  error(message: string, meta?: Meta): void
+  warn(message: string, meta?: Meta): void
+  info(message: string, meta?: Meta): void
+  debug(message: string, meta?: Meta): void
+  child(meta: Meta): Logger
 }
 
-// Structured logging helpers
+function isBrowser() {
+  return typeof window !== "undefined"
+}
+
+/* ---------- Browser implementation ---------- */
+function createBrowserLogger(ctx: Meta = {}): Logger {
+  /* eslint-disable no-console */
+  const make = (level: keyof Console) => (msg: string, meta?: Meta) =>
+    console[level](`[${level.toUpperCase()}] ${msg}`, { ...ctx, ...meta })
+
+  const base: Logger = {
+    error: make("error"),
+    warn: make("warn"),
+    info: make("info"),
+    debug: make("debug"),
+    child: (meta: Meta) => createBrowserLogger({ ...ctx, ...meta }),
+  }
+  /* eslint-enable no-console */
+  return base
+}
+
+/* ---------- Server implementation ---------- */
+function createServerLogger(ctx: Meta = {}): Logger {
+  const output = (level: string, message: string, meta?: Meta) => {
+    // eslint-disable-next-line no-console
+    console.log(
+      JSON.stringify({
+        timestamp: new Date().toISOString(),
+        level,
+        message,
+        ...ctx,
+        ...meta,
+      }),
+    )
+  }
+
+  const make = (level: string) => (msg: string, meta?: Meta) => output(level, msg, meta)
+
+  const base: Logger = {
+    error: make("error"),
+    warn: make("warn"),
+    info: make("info"),
+    debug: make("debug"),
+    child: (meta: Meta) => createServerLogger({ ...ctx, ...meta }),
+  }
+  return base
+}
+
+/* ---------- Choose implementation ---------- */
+export const logger: Logger = isBrowser()
+  ? createBrowserLogger({
+      service: "Healthcare Insurance Portal",
+      environment: process.env.NODE_ENV ?? "development",
+    })
+  : createServerLogger({
+      service: "Healthcare Insurance Portal",
+      environment: process.env.NODE_ENV ?? "development",
+    })
+
+/* ---------- Named children for convenience ---------- */
 export const loggers = {
   auth: logger.child({ module: "auth" }),
   api: logger.child({ module: "api" }),
@@ -63,39 +87,15 @@ export const loggers = {
   performance: logger.child({ module: "performance" }),
 }
 
-// Performance monitoring
-export function logPerformance(operation: string, duration: number, metadata?: any) {
-  loggers.performance.info("Performance metric", {
-    operation,
-    duration,
-    ...metadata,
-  })
+/* ---------- Helper wrappers ---------- */
+export function logPerformance(operation: string, duration: number, meta?: Meta) {
+  loggers.performance.info(`Performance ${operation} – ${duration} ms`, meta)
 }
 
-// Security event logging
-export function logSecurityEvent(event: string, userId?: string, metadata?: any) {
-  loggers.security.warn("Security event", {
-    event,
-    userId,
-    timestamp: new Date().toISOString(),
-    ...metadata,
-  })
+export function logSecurityEvent(event: string, userId?: string, meta?: Meta) {
+  loggers.security.warn("Security event", { event, userId, ...meta })
 }
 
-// Audit logging
-export function logAuditEvent(
-  action: string,
-  userId: string,
-  resourceType: string,
-  resourceId: string,
-  metadata?: any,
-) {
-  logger.info("Audit event", {
-    action,
-    userId,
-    resourceType,
-    resourceId,
-    timestamp: new Date().toISOString(),
-    ...metadata,
-  })
+export function logAuditEvent(action: string, userId: string, resourceType: string, resourceId: string, meta?: Meta) {
+  logger.info("Audit event", { action, userId, resourceType, resourceId, ...meta })
 }

@@ -1,147 +1,224 @@
 import { z } from "zod"
 
 // User schemas
-export const userRegistrationSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters")
-    .regex(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
-      "Password must contain uppercase, lowercase, number, and special character",
-    ),
-  firstName: z.string().min(1, "First name is required").max(50, "First name too long"),
-  lastName: z.string().min(1, "Last name is required").max(50, "Last name too long"),
+export const userSchema = z.object({
+  id: z.string().uuid(),
+  email: z.string().email(),
+  firstName: z.string().min(1).max(50),
+  lastName: z.string().min(1).max(50),
   phone: z
     .string()
-    .regex(/^\+?[\d\s\-()]{10,}$/, "Invalid phone number")
+    .regex(/^\+?[\d\s\-$$$$]+$/)
     .optional(),
-  dateOfBirth: z.string().refine((date) => {
-    const birthDate = new Date(date)
-    const today = new Date()
-    const age = today.getFullYear() - birthDate.getFullYear()
-    return age >= 18 && age <= 120
-  }, "Must be between 18 and 120 years old"),
-  role: z.enum(["customer", "hospital", "tpa", "insurer"]),
-  organization: z.string().max(100, "Organization name too long").optional(),
-  acceptTerms: z.boolean().refine((val) => val === true, "Must accept terms and conditions"),
-  acceptPrivacy: z.boolean().refine((val) => val === true, "Must accept privacy policy"),
+  dateOfBirth: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  role: z.enum(["customer", "hospital", "tpa", "insurer", "admin"]),
+  organization: z.string().max(100).optional(),
+  isActive: z.boolean().default(true),
+  emailVerified: z.boolean().default(false),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
 })
 
-export const userLoginSchema = z.object({
-  email: z.string().email("Invalid email address"),
+export const createUserSchema = userSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  isActive: true,
+  emailVerified: true,
+})
+
+export const updateUserSchema = createUserSchema.partial()
+
+// Authentication schemas
+export const loginSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
   password: z.string().min(1, "Password is required"),
 })
 
-export const userProfileUpdateSchema = z.object({
-  firstName: z.string().min(1, "First name is required").max(50, "First name too long").optional(),
-  lastName: z.string().min(1, "Last name is required").max(50, "Last name too long").optional(),
-  phone: z
-    .string()
-    .regex(/^\+?[\d\s\-()]{10,}$/, "Invalid phone number")
-    .optional(),
-  dateOfBirth: z.string().optional(),
-  organization: z.string().max(100, "Organization name too long").optional(),
-  preferences: z.record(z.any()).optional(),
+export const registerSchema = z
+  .object({
+    email: z.string().email("Please enter a valid email address"),
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters long")
+      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+      .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+      .regex(/\d/, "Password must contain at least one number")
+      .regex(/[!@#$%^&*(),.?":{}|<>]/, "Password must contain at least one special character"),
+    confirmPassword: z.string(),
+    firstName: z.string().min(1, "First name is required").max(50),
+    lastName: z.string().min(1, "Last name is required").max(50),
+    phone: z
+      .string()
+      .regex(/^\+?[\d\s\-$$$$]+$/, "Please enter a valid phone number")
+      .optional(),
+    dateOfBirth: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Please enter a valid date")
+      .optional(),
+    role: z.enum(["customer", "hospital", "tpa", "insurer"]),
+    organization: z.string().max(100).optional(),
+    acceptTerms: z.boolean().refine((val) => val === true, "You must accept the terms and conditions"),
+    acceptPrivacy: z.boolean().refine((val) => val === true, "You must accept the privacy policy"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  })
+  .refine(
+    (data) => {
+      if (data.dateOfBirth) {
+        const birthDate = new Date(data.dateOfBirth)
+        const today = new Date()
+        const age = today.getFullYear() - birthDate.getFullYear()
+        return age >= 18
+      }
+      return true
+    },
+    {
+      message: "You must be at least 18 years old",
+      path: ["dateOfBirth"],
+    },
+  )
+  .refine(
+    (data) => {
+      if (data.role !== "customer" && !data.organization) {
+        return false
+      }
+      return true
+    },
+    {
+      message: "Organization is required for this role",
+      path: ["organization"],
+    },
+  )
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
 })
 
-export const passwordChangeSchema = z
+export const resetPasswordSchema = z
   .object({
-    currentPassword: z.string().min(1, "Current password is required"),
-    newPassword: z
+    token: z.string().min(1, "Reset token is required"),
+    password: z
       .string()
-      .min(8, "Password must be at least 8 characters")
-      .regex(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
-        "Password must contain uppercase, lowercase, number, and special character",
-      ),
+      .min(8, "Password must be at least 8 characters long")
+      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+      .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+      .regex(/\d/, "Password must contain at least one number")
+      .regex(/[!@#$%^&*(),.?":{}|<>]/, "Password must contain at least one special character"),
     confirmPassword: z.string(),
   })
-  .refine((data) => data.newPassword === data.confirmPassword, {
-    message: "Passwords don't match",
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
     path: ["confirmPassword"],
   })
 
-// Policy schemas
-export const policySchema = z
-  .object({
-    policyNumber: z.string().min(1, "Policy number is required"),
-    policyType: z.string().min(1, "Policy type is required"),
-    premiumAmount: z.number().positive("Premium amount must be positive"),
-    coverageAmount: z.number().positive("Coverage amount must be positive"),
-    startDate: z.string().refine((date) => new Date(date) > new Date(), "Start date must be in the future"),
-    endDate: z.string(),
-    deductible: z.number().min(0, "Deductible cannot be negative"),
-    copay: z.number().min(0, "Copay cannot be negative"),
-    outOfPocketMax: z.number().positive("Out of pocket max must be positive"),
-    networkType: z.enum(["HMO", "PPO", "EPO", "POS"]),
-  })
-  .refine((data) => new Date(data.endDate) > new Date(data.startDate), {
-    message: "End date must be after start date",
-    path: ["endDate"],
-  })
-
 // Claim schemas
-export const claimSubmissionSchema = z.object({
-  policyId: z.string().uuid("Invalid policy ID"),
-  providerId: z.string().uuid("Invalid provider ID"),
-  diagnosis: z.string().min(1, "Diagnosis is required").max(500, "Diagnosis too long"),
-  treatmentDetails: z.string().min(1, "Treatment details are required").max(1000, "Treatment details too long"),
-  claimAmount: z.number().positive("Claim amount must be positive").max(1000000, "Claim amount too high"),
-  serviceDate: z.string().refine((date) => new Date(date) <= new Date(), "Service date cannot be in the future"),
-  attachments: z.array(z.string()).optional(),
-  emergencyService: z.boolean().default(false),
+export const claimSchema = z.object({
+  id: z.string().uuid(),
+  userId: z.string().uuid(),
+  policyId: z.string().uuid(),
+  claimNumber: z.string(),
+  type: z.enum(["medical", "dental", "vision", "prescription", "emergency"]),
+  status: z.enum(["draft", "submitted", "under_review", "approved", "denied", "paid"]),
+  amount: z.number().positive(),
+  description: z.string().min(1).max(1000),
+  dateOfService: z.string().datetime(),
+  providerId: z.string().uuid().optional(),
+  documents: z.array(z.string()).default([]),
+  submittedAt: z.string().datetime().optional(),
+  reviewedAt: z.string().datetime().optional(),
+  approvedAmount: z.number().positive().optional(),
+  denialReason: z.string().max(500).optional(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
 })
 
-export const claimProcessingSchema = z.object({
-  claimId: z.string().uuid("Invalid claim ID"),
-  status: z.enum(["approved", "rejected", "pending_info"]),
-  approvedAmount: z.number().min(0, "Approved amount cannot be negative").optional(),
-  rejectionReason: z.string().max(500, "Rejection reason too long").optional(),
-  processorNotes: z.string().max(1000, "Processor notes too long").optional(),
+export const createClaimSchema = claimSchema.omit({
+  id: true,
+  claimNumber: true,
+  status: true,
+  submittedAt: true,
+  reviewedAt: true,
+  approvedAmount: true,
+  denialReason: true,
+  createdAt: true,
+  updatedAt: true,
 })
+
+export const updateClaimSchema = createClaimSchema.partial()
+
+// Policy schemas
+export const policySchema = z.object({
+  id: z.string().uuid(),
+  userId: z.string().uuid(),
+  policyNumber: z.string(),
+  type: z.enum(["individual", "family", "group"]),
+  status: z.enum(["active", "inactive", "cancelled", "expired"]),
+  premium: z.number().positive(),
+  deductible: z.number().min(0),
+  coverageLimit: z.number().positive(),
+  startDate: z.string().datetime(),
+  endDate: z.string().datetime(),
+  beneficiaries: z
+    .array(
+      z.object({
+        name: z.string(),
+        relationship: z.string(),
+        dateOfBirth: z.string(),
+      }),
+    )
+    .default([]),
+  coverageDetails: z.record(z.any()).default({}),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+})
+
+export const createPolicySchema = policySchema.omit({
+  id: true,
+  policyNumber: true,
+  createdAt: true,
+  updatedAt: true,
+})
+
+export const updatePolicySchema = createPolicySchema.partial()
 
 // Provider schemas
-export const providerRegistrationSchema = z.object({
-  name: z.string().min(1, "Provider name is required").max(100, "Provider name too long"),
-  type: z.enum(["Hospital", "Clinic", "Specialist", "Urgent Care", "Dental", "Pharmacy"]),
-  specialty: z.string().min(1, "Specialty is required").max(100, "Specialty too long"),
-  address: z.string().min(1, "Address is required").max(200, "Address too long"),
-  phone: z.string().regex(/^\+?[\d\s\-()]{10,}$/, "Invalid phone number"),
-  email: z.string().email("Invalid email address"),
-  website: z.string().url("Invalid website URL").optional(),
-  licenseNumber: z.string().min(1, "License number is required"),
-  networkStatus: z.enum(["In-Network", "Out-of-Network"]),
-  services: z.array(z.string()).min(1, "At least one service is required"),
-  acceptedInsurance: z.array(z.string()).min(1, "At least one insurance type is required"),
+export const providerSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1).max(100),
+  type: z.enum(["hospital", "clinic", "pharmacy", "laboratory", "specialist"]),
+  specialties: z.array(z.string()).default([]),
+  address: z.object({
+    street: z.string(),
+    city: z.string(),
+    state: z.string(),
+    zipCode: z.string(),
+    country: z.string().default("US"),
+  }),
+  contact: z.object({
+    phone: z.string(),
+    email: z.string().email().optional(),
+    website: z.string().url().optional(),
+  }),
+  networkStatus: z.enum(["in_network", "out_of_network"]),
+  rating: z.number().min(0).max(5).optional(),
+  isActive: z.boolean().default(true),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
 })
 
-// Analytics schemas
-export const analyticsQuerySchema = z
-  .object({
-    startDate: z.string().refine((date) => !isNaN(Date.parse(date)), "Invalid start date"),
-    endDate: z.string().refine((date) => !isNaN(Date.parse(date)), "Invalid end date"),
-    metrics: z.array(z.string()).min(1, "At least one metric is required"),
-    filters: z.record(z.any()).optional(),
-    groupBy: z.array(z.string()).optional(),
-  })
-  .refine((data) => new Date(data.endDate) >= new Date(data.startDate), {
-    message: "End date must be after or equal to start date",
-    path: ["endDate"],
-  })
-
-// File upload schemas
-export const fileUploadSchema = z.object({
-  fileName: z.string().min(1, "File name is required"),
-  fileSize: z.number().positive("File size must be positive").max(10485760, "File too large (max 10MB)"),
-  fileType: z
-    .string()
-    .refine(
-      (type) => ["image/jpeg", "image/png", "image/gif", "application/pdf", "text/csv"].includes(type),
-      "Unsupported file type",
-    ),
-  category: z.enum(["claim_document", "policy_document", "profile_image", "report"]),
+export const createProviderSchema = providerSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 })
+
+export const updateProviderSchema = createProviderSchema.partial()
 
 // API response schemas
 export const apiResponseSchema = z.object({
@@ -149,39 +226,31 @@ export const apiResponseSchema = z.object({
   data: z.any().optional(),
   error: z.string().optional(),
   message: z.string().optional(),
-  timestamp: z.string(),
-  requestId: z.string().uuid(),
 })
 
 export const paginationSchema = z.object({
   page: z.number().int().positive().default(1),
-  limit: z.number().int().positive().max(100).default(20),
+  limit: z.number().int().positive().max(100).default(10),
   sortBy: z.string().optional(),
   sortOrder: z.enum(["asc", "desc"]).default("desc"),
 })
 
-// Validation helper functions
-export function validateSchema<T>(
-  schema: z.ZodSchema<T>,
-  data: unknown,
-): { success: true; data: T } | { success: false; errors: string[] } {
-  try {
-    const validatedData = schema.parse(data)
-    return { success: true, data: validatedData }
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return {
-        success: false,
-        errors: error.errors.map((err) => `${err.path.join(".")}: ${err.message}`),
-      }
-    }
-    return { success: false, errors: ["Validation failed"] }
-  }
-}
-
-export function validatePartialSchema<T>(
-  schema: z.ZodSchema<T>,
-  data: unknown,
-): { success: true; data: Partial<T> } | { success: false; errors: string[] } {
-  return validateSchema(schema.partial(), data)
-}
+// Type exports
+export type User = z.infer<typeof userSchema>
+export type CreateUser = z.infer<typeof createUserSchema>
+export type UpdateUser = z.infer<typeof updateUserSchema>
+export type Login = z.infer<typeof loginSchema>
+export type Register = z.infer<typeof registerSchema>
+export type ForgotPassword = z.infer<typeof forgotPasswordSchema>
+export type ResetPassword = z.infer<typeof resetPasswordSchema>
+export type Claim = z.infer<typeof claimSchema>
+export type CreateClaim = z.infer<typeof createClaimSchema>
+export type UpdateClaim = z.infer<typeof updateClaimSchema>
+export type Policy = z.infer<typeof policySchema>
+export type CreatePolicy = z.infer<typeof createPolicySchema>
+export type UpdatePolicy = z.infer<typeof updatePolicySchema>
+export type Provider = z.infer<typeof providerSchema>
+export type CreateProvider = z.infer<typeof createProviderSchema>
+export type UpdateProvider = z.infer<typeof updateProviderSchema>
+export type ApiResponse = z.infer<typeof apiResponseSchema>
+export type Pagination = z.infer<typeof paginationSchema>

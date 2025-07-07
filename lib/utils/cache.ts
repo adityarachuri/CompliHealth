@@ -1,33 +1,32 @@
-import { Redis } from "ioredis"
-import { APP_CONFIG } from "@/lib/config/app-config"
+import Redis from "ioredis"
 import { logger } from "@/lib/utils/logger"
+
+interface CacheItem {
+  value: any
+  expires: number
+}
 
 class CacheManager {
   private static instance: CacheManager
   private redis: Redis | null = null
-  private memoryCache: Map<string, { value: any; expires: number }> = new Map()
+  private memoryCache = new Map<string, CacheItem>()
+  private readonly maxMemoryItems = 100
 
   private constructor() {
-    if (APP_CONFIG.cache.redis.url) {
-      this.redis = new Redis(APP_CONFIG.cache.redis.url, {
-        retryDelayOnFailover: 100,
-        maxRetriesPerRequest: 3,
-        lazyConnect: true,
-      })
-
-      this.redis.on("connect", () => {
-        logger.info("Redis cache connected")
-      })
-
-      this.redis.on("error", (error) => {
-        logger.error("Redis cache error:", error)
-      })
+    try {
+      if (process.env.REDIS_URL) {
+        this.redis = new Redis(process.env.REDIS_URL)
+        this.redis.on("error", (error) => {
+          logger.error("Redis connection error:", error)
+          this.redis = null
+        })
+      }
+    } catch (error) {
+      logger.error("Failed to initialize Redis:", error)
     }
 
-    // Clean up memory cache periodically
-    setInterval(() => {
-      this.cleanupMemoryCache()
-    }, 60000) // Every minute
+    // Cleanup expired memory cache items every 5 minutes
+    setInterval(() => this.cleanupMemoryCache(), 5 * 60 * 1000)
   }
 
   public static getInstance(): CacheManager {
@@ -49,8 +48,12 @@ class CacheManager {
 
       // Fallback to memory cache
       const memoryItem = this.memoryCache.get(key)
-      if (memoryItem && memoryItem.expires > Date.now()) {
-        return memoryItem.value
+      if (memoryItem) {
+        if (memoryItem.expires > Date.now()) {
+          return memoryItem.value
+        } else {
+          this.memoryCache.delete(key)
+        }
       }
 
       return null
@@ -60,27 +63,17 @@ class CacheManager {
     }
   }
 
-  public async set(key: string, value: any, ttl?: number): Promise<void> {
+  public async set(key: string, value: any, ttlSeconds = 3600): Promise<void> {
     try {
       const serializedValue = JSON.stringify(value)
-      const cacheTtl = ttl || APP_CONFIG.cache.redis.ttl
 
       // Set in Redis
       if (this.redis) {
-        await this.redis.setex(key, cacheTtl, serializedValue)
+        await this.redis.setex(key, ttlSeconds, serializedValue)
       }
 
-      // Set in memory cache as fallback
-      this.memoryCache.set(key, {
-        value,
-        expires: Date.now() + cacheTtl * 1000,
-      })
-
-      // Limit memory cache size
-      if (this.memoryCache.size > APP_CONFIG.cache.memory.maxSize) {
-        const firstKey = this.memoryCache.keys().next().value
-        this.memoryCache.delete(firstKey)
-      }
+      // Set in memory cache
+      this.setMemoryCache(key, value, ttlSeconds)
     } catch (error) {
       logger.error("Cache set error:", error)
     }
@@ -108,15 +101,6 @@ class CacheManager {
     }
   }
 
-  private cleanupMemoryCache(): void {
-    const now = Date.now()
-    for (const [key, item] of this.memoryCache.entries()) {
-      if (item.expires <= now) {
-        this.memoryCache.delete(key)
-      }
-    }
-  }
-
   public async healthCheck(): Promise<boolean> {
     try {
       if (this.redis) {
@@ -128,12 +112,34 @@ class CacheManager {
       return false
     }
   }
+
+  private setMemoryCache(key: string, value: any, ttlSeconds: number): void {
+    // Limit memory cache size
+    if (this.memoryCache.size >= this.maxMemoryItems) {
+      const firstKey = this.memoryCache.keys().next().value
+      this.memoryCache.delete(firstKey)
+    }
+
+    this.memoryCache.set(key, {
+      value,
+      expires: Date.now() + ttlSeconds * 1000,
+    })
+  }
+
+  private cleanupMemoryCache(): void {
+    const now = Date.now()
+    for (const [key, item] of this.memoryCache.entries()) {
+      if (item.expires <= now) {
+        this.memoryCache.delete(key)
+      }
+    }
+  }
 }
 
 export const cache = CacheManager.getInstance()
 
-// Cache decorators
-export function Cacheable(ttl?: number) {
+// Decorator for caching method results
+export function Cacheable(ttlSeconds = 3600) {
   return (target: any, propertyName: string, descriptor: PropertyDescriptor) => {
     const method = descriptor.value
 
@@ -148,7 +154,7 @@ export function Cacheable(ttl?: number) {
 
       // Execute method and cache result
       const result = await method.apply(this, args)
-      await cache.set(cacheKey, result, ttl)
+      await cache.set(cacheKey, result, ttlSeconds)
 
       return result
     }
