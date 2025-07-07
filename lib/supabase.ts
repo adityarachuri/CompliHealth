@@ -3,30 +3,65 @@ import { createClient } from "@supabase/supabase-js"
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://demo.supabase.co"
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "demo-key"
 
-// Singleton pattern to prevent multiple instances
-let supabaseInstance: ReturnType<typeof createClient> | null = null
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-function createSupabaseClient() {
-  if (supabaseInstance) {
-    return supabaseInstance
-  }
-
-  supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-    },
-  })
-
-  return supabaseInstance
+// Types for our application
+export interface User {
+  id: string
+  email: string
+  name: string
+  role: "customer" | "hospital" | "tpa" | "insurer"
+  organization?: string
 }
 
-export const supabase = createSupabaseClient()
+export interface Policy {
+  id: string
+  policy_number: string
+  customer_id: string
+  policy_type: string
+  premium_amount: number
+  coverage_amount: number
+  start_date: string
+  end_date: string
+  status: string
+  deductible: number
+  copay: number
+  out_of_pocket_max: number
+  network_type: string
+}
 
-export function isSupabaseConfigured(): boolean {
-  const hasValidUrl = supabaseUrl && supabaseUrl !== "https://demo.supabase.co" && supabaseUrl.includes("supabase.co")
-  const hasValidKey = supabaseAnonKey && supabaseAnonKey !== "demo-key" && supabaseAnonKey.length > 20
+export interface Claim {
+  id: string
+  claim_number: string
+  policy_id: string
+  provider_id: string
+  customer_id: string
+  claim_amount: number
+  approved_amount?: number
+  diagnosis: string
+  treatment_details: string
+  status: "submitted" | "under_review" | "approved" | "rejected" | "paid"
+  submission_date: string
+  processed_date?: string
+  notes?: string
+}
 
-  return hasValidUrl && hasValidKey
+export interface Provider {
+  id: string
+  name: string
+  type: string
+  specialty?: string
+  address: string
+  city: string
+  state: string
+  zip_code: string
+  phone: string
+  email?: string
+  website?: string
+  network_status: "in-network" | "out-of-network"
+  rating: number
+  review_count: number
+  accepting_patients: boolean
+  languages: string[]
+  services: string[]
 }
