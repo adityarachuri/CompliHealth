@@ -1,4 +1,4 @@
-## **Healthcare Insurance Portal - Application Overview**
+## **CompliHealth Healthcare Insurance Portal - Application Overview**
 
 ### **Purpose & Scope**
 
