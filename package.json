@@ -1,7 +1,8 @@
 {
-  "name": "healthcare-insurance-portal",
+  "name": "complihealth",
   "version": "0.1.0",
   "private": true,
+  "description": "CompliHealth - Comprehensive healthcare insurance management platform",
   "scripts": {
     "build": "next build",
     "dev": "next dev",

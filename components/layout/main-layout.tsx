@@ -2,128 +2,166 @@
 
 import type React from "react"
 
-import { useState } from "react"
-import { usePathname } from "next/navigation"
-import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
-  Menu,
-  Home,
-  FileText,
-  ClipboardList,
-  Users,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import {
   Shield,
+  Menu,
+  LayoutDashboard,
+  FileText,
+  CreditCard,
+  Users,
   BarChart3,
-  Building2,
-  UserCheck,
   Settings,
   LogOut,
+  User,
 } from "lucide-react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 
-interface NavigationItem {
-  name: string
-  href: string
-  icon: any
-  roles: string[]
+interface MainLayoutProps {
+  children: React.ReactNode
 }
 
-const navigation: NavigationItem[] = [
-  { name: "Dashboard", href: "/dashboard", icon: Home, roles: ["customer", "hospital", "tpa", "insurer"] },
-  { name: "My Policies", href: "/policies", icon: FileText, roles: ["customer"] },
-  { name: "Claims", href: "/claims", icon: ClipboardList, roles: ["customer", "hospital", "tpa", "insurer"] },
-  { name: "Find Providers", href: "/providers", icon: Users, roles: ["customer"] },
-  { name: "Coverage", href: "/coverage", icon: Shield, roles: ["customer"] },
-  { name: "Analytics", href: "/analytics", icon: BarChart3, roles: ["insurer", "tpa"] },
-  { name: "Policies", href: "/policies", icon: FileText, roles: ["insurer", "tpa"] },
-  { name: "Provider Network", href: "/providers", icon: Building2, roles: ["hospital", "insurer", "tpa"] },
-  { name: "Patient Coverage", href: "/coverage", icon: UserCheck, roles: ["hospital"] },
-  { name: "Coverage Management", href: "/coverage", icon: Shield, roles: ["tpa", "insurer"] },
-]
-
-export function MainLayout({ children }: { children: React.ReactNode }) {
-  const { user, signOut } = useAuth()
+export function MainLayout({ children }: MainLayoutProps) {
+  const { user, signOut, loading } = useAuth()
+  const router = useRouter()
   const pathname = usePathname()
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+  useEffect(() => {
+    if (!loading && !user) {
+      console.log("CompliHealth - No authenticated user, redirecting to login")
+      router.push("/login")
+    }
+  }, [user, loading, router])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center space-y-4">
+          <div className="mx-auto h-16 w-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg animate-pulse">
+            <Shield className="h-10 w-10 text-white" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-700">Loading CompliHealth...</h1>
+        </div>
+      </div>
+    )
+  }
 
   if (!user) {
     return null
   }
 
-  const userRole = user.role
-  const userName = user.name
-  const userInitials = userName
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
+  const getNavigationItems = () => {
+    const baseItems = [
+      { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { name: "Claims", href: "/claims", icon: FileText },
+      { name: "Policies", href: "/policies", icon: CreditCard },
+      { name: "Providers", href: "/providers", icon: Users },
+    ]
 
-  const filteredNavigation = navigation.filter((item) => item.roles.includes(userRole))
-
-  const isActive = (href: string) => {
-    if (href === "/dashboard") {
-      return pathname === "/dashboard"
+    // Add role-specific items
+    if (user.role === "insurer" || user.role === "tpa") {
+      baseItems.push({ name: "Analytics", href: "/analytics", icon: BarChart3 })
     }
-    return pathname.startsWith(href)
+
+    if (user.role === "customer") {
+      baseItems.push({ name: "Coverage", href: "/coverage", icon: Settings })
+    }
+
+    return baseItems
   }
+
+  const navigationItems = getNavigationItems()
 
   const handleSignOut = async () => {
     try {
       await signOut()
     } catch (error) {
-      console.error("Error signing out:", error)
+      console.error("CompliHealth - Sign out error:", error)
     }
   }
 
+  const getUserInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2)
+  }
+
+  const getRoleDisplayName = (role: string) => {
+    const roleMap = {
+      customer: "Customer",
+      hospital: "Hospital Staff",
+      tpa: "TPA Administrator",
+      insurer: "Insurance Provider",
+    }
+    return roleMap[role as keyof typeof roleMap] || role
+  }
+
   const SidebarContent = () => (
-    <div className="flex h-full flex-col">
-      <div className="flex h-16 items-center border-b px-4">
-        <div className="flex items-center space-x-2">
-          <div className="h-8 w-8 rounded bg-blue-600 flex items-center justify-center">
-            <Shield className="h-5 w-5 text-white" />
-          </div>
-          <span className="text-lg font-semibold">HealthCare Portal</span>
+    <div className="flex flex-col h-full">
+      {/* CompliHealth Logo */}
+      <div className="flex items-center space-x-3 p-6 border-b">
+        <div className="h-10 w-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
+          <Shield className="h-6 w-6 text-white" />
+        </div>
+        <div>
+          <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            CompliHealth
+          </h1>
+          <p className="text-xs text-gray-500">Healthcare Insurance Platform</p>
         </div>
       </div>
 
-      <nav className="flex-1 space-y-1 px-2 py-4">
-        {filteredNavigation.map((item) => {
-          const Icon = item.icon
-          const active = isActive(item.href)
-
+      {/* Navigation */}
+      <nav className="flex-1 p-4 space-y-2">
+        {navigationItems.map((item) => {
+          const isActive = pathname === item.href
           return (
             <Link
               key={item.name}
               href={item.href}
-              onClick={() => setSidebarOpen(false)}
-              className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors ${
-                active
-                  ? "bg-blue-100 text-blue-900 border-r-2 border-blue-600"
-                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
+                isActive
+                  ? "bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 border border-blue-200"
+                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
               }`}
             >
-              <Icon
-                className={`mr-3 h-5 w-5 flex-shrink-0 ${
-                  active ? "text-blue-600" : "text-gray-400 group-hover:text-gray-500"
-                }`}
-              />
-              {item.name}
+              <item.icon className="h-5 w-5" />
+              <span className="font-medium">{item.name}</span>
             </Link>
           )
         })}
       </nav>
 
-      <div className="border-t p-4">
-        <div className="flex items-center space-x-3">
+      {/* User Info */}
+      <div className="p-4 border-t">
+        <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
           <Avatar className="h-8 w-8">
-            <AvatarFallback className="bg-blue-600 text-white text-xs">{userInitials}</AvatarFallback>
+            <AvatarFallback className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm">
+              {getUserInitials(user.name)}
+            </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">{userName}</p>
-            <p className="text-xs text-gray-500 truncate capitalize">{userRole}</p>
+            <p className="text-sm font-medium text-gray-900 truncate">{user.name}</p>
+            <p className="text-xs text-gray-500 truncate">{getRoleDisplayName(user.role)}</p>
           </div>
         </div>
       </div>
@@ -131,68 +169,86 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
   )
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50">
       {/* Desktop Sidebar */}
-      <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0">
-        <div className="flex flex-col flex-grow bg-white border-r border-gray-200 overflow-y-auto">
+      <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-72 lg:flex-col">
+        <div className="flex flex-col flex-grow bg-white border-r border-gray-200 shadow-sm">
           <SidebarContent />
         </div>
       </div>
 
       {/* Mobile Sidebar */}
-      <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-        <SheetContent side="left" className="p-0 w-64">
+      <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+        <SheetContent side="left" className="p-0 w-72">
           <SidebarContent />
         </SheetContent>
       </Sheet>
 
       {/* Main Content */}
-      <div className="flex flex-col flex-1 lg:pl-64">
+      <div className="lg:pl-72">
         {/* Top Header */}
-        <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
           <div className="flex items-center justify-between px-4 py-4">
             <div className="flex items-center space-x-4">
-              <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+              <Sheet>
                 <SheetTrigger asChild>
-                  <Button variant="ghost" size="sm" className="lg:hidden">
-                    <Menu className="h-5 w-5" />
+                  <Button variant="ghost" size="icon" className="lg:hidden">
+                    <Menu className="h-6 w-6" />
                   </Button>
                 </SheetTrigger>
+                <SheetContent side="left" className="p-0 w-72">
+                  <SidebarContent />
+                </SheetContent>
               </Sheet>
-
-              <h1 className="text-xl font-semibold text-gray-900">
-                {filteredNavigation.find((item) => isActive(item.href))?.name || "Dashboard"}
-              </h1>
+              <div className="lg:hidden">
+                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  CompliHealth
+                </h1>
+              </div>
             </div>
 
-            <div className="flex items-center space-x-4">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center space-x-2">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-blue-600 text-white text-xs">{userInitials}</AvatarFallback>
-                    </Avatar>
-                    <span className="hidden md:block text-sm font-medium">{userName}</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem>
-                    <Settings className="mr-2 h-4 w-4" />
-                    Settings
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleSignOut}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Sign Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                  <Avatar className="h-10 w-10">
+                    <AvatarFallback className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+                      {getUserInitials(user.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{user.name}</p>
+                    <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                    <p className="text-xs leading-none text-muted-foreground">{getRoleDisplayName(user.role)}</p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Sign out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-        </header>
+        </div>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="p-6">{children}</div>
+        <main className="flex-1">
+          <div className="py-6">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">{children}</div>
+          </div>
         </main>
       </div>
     </div>

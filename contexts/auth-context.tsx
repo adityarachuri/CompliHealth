@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useContext, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 
 interface User {
@@ -21,36 +21,37 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-// Demo users for testing
-const demoUsers: Record<string, User> = {
-  "customer@demo.com": {
-    id: "customer-1",
+// Demo users for CompliHealth
+const DEMO_USERS: User[] = [
+  {
+    id: "1",
     email: "customer@demo.com",
-    name: "John Doe",
+    name: "John Smith",
     role: "customer",
+    organization: "Personal Account",
   },
-  "hospital@demo.com": {
-    id: "hospital-1",
+  {
+    id: "2",
     email: "hospital@demo.com",
     name: "Dr. Sarah Johnson",
     role: "hospital",
     organization: "City General Hospital",
   },
-  "tpa@demo.com": {
-    id: "tpa-1",
+  {
+    id: "3",
     email: "tpa@demo.com",
     name: "Michael Chen",
     role: "tpa",
-    organization: "Healthcare TPA Services",
+    organization: "HealthCare TPA Services",
   },
-  "insurer@demo.com": {
-    id: "insurer-1",
+  {
+    id: "4",
     email: "insurer@demo.com",
-    name: "Lisa Wang",
+    name: "Lisa Rodriguez",
     role: "insurer",
-    organization: "HealthFirst Insurance",
+    organization: "CompliHealth Insurance",
   },
-}
+]
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -58,59 +59,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
 
   useEffect(() => {
-    // Check for stored user session
-    const storedUser = localStorage.getItem("healthcare-user")
-    if (storedUser) {
+    // Check for existing session
+    const checkAuth = () => {
       try {
-        setUser(JSON.parse(storedUser))
+        const storedUser = localStorage.getItem("complihealth-user")
+        if (storedUser) {
+          const userData = JSON.parse(storedUser)
+          console.log("CompliHealth - Restored user session:", userData.email)
+          setUser(userData)
+        }
       } catch (error) {
-        console.error("Error parsing stored user:", error)
-        localStorage.removeItem("healthcare-user")
+        console.error("CompliHealth - Error restoring session:", error)
+        localStorage.removeItem("complihealth-user")
+      } finally {
+        setLoading(false)
       }
     }
-    setLoading(false)
+
+    checkAuth()
   }, [])
 
   const signIn = async (email: string, password: string) => {
-    setLoading(true)
-    try {
-      // Demo authentication - in production, this would be a real API call
-      const demoUser = demoUsers[email.toLowerCase()]
-      if (demoUser && password === "demo123") {
-        setUser(demoUser)
-        localStorage.setItem("healthcare-user", JSON.stringify(demoUser))
-        router.push("/dashboard")
-      } else {
-        throw new Error("Invalid credentials")
-      }
-    } catch (error) {
-      throw error
-    } finally {
-      setLoading(false)
+    console.log("CompliHealth - Sign in attempt:", email)
+
+    // Demo authentication
+    if (password !== "demo123") {
+      throw new Error("Invalid password. Use 'demo123' for demo accounts.")
     }
+
+    const demoUser = DEMO_USERS.find((u) => u.email === email)
+    if (!demoUser) {
+      throw new Error("User not found. Please use a valid demo email address.")
+    }
+
+    // Simulate API delay
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+
+    console.log("CompliHealth - Sign in successful:", demoUser.email)
+    setUser(demoUser)
+    localStorage.setItem("complihealth-user", JSON.stringify(demoUser))
   }
 
   const signOut = async () => {
-    setLoading(true)
-    try {
-      setUser(null)
-      localStorage.removeItem("healthcare-user")
-      router.push("/login")
-    } catch (error) {
-      console.error("Error signing out:", error)
-    } finally {
-      setLoading(false)
-    }
+    console.log("CompliHealth - Signing out user")
+    setUser(null)
+    localStorage.removeItem("complihealth-user")
+    router.push("/login")
   }
 
-  const value = {
-    user,
-    loading,
-    signIn,
-    signOut,
-  }
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return <AuthContext.Provider value={{ user, loading, signIn, signOut }}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {

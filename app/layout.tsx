@@ -3,13 +3,16 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { AuthProvider } from "@/contexts/auth-context"
+import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Healthcare Insurance Portal",
-  description: "Comprehensive healthcare insurance management system",
-  generator: "v0.dev",
+  title: "CompliHealth - Healthcare Insurance Management",
+  description: "Comprehensive healthcare insurance management platform for customers, hospitals, TPAs, and insurers",
+  keywords: ["healthcare", "insurance", "compliance", "claims", "policies", "providers"],
+    generator: 'v0.dev'
 }
 
 export default function RootLayout({
@@ -18,9 +21,14 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <AuthProvider>{children}</AuthProvider>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+          <AuthProvider>
+            {children}
+            <Toaster />
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   )
