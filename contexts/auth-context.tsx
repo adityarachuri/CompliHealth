@@ -21,7 +21,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-// Demo users for CompliHealth
+// CompliHealth Demo Users Database
 const DEMO_USERS: User[] = [
   {
     id: "1",
@@ -59,24 +59,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
 
   useEffect(() => {
-    // Check for existing session
-    const checkAuth = () => {
+    // CompliHealth - Check for existing session
+    const checkSession = () => {
       try {
-        const storedUser = localStorage.getItem("complihealth-user")
-        if (storedUser) {
-          const userData = JSON.parse(storedUser)
-          console.log("CompliHealth - Restored user session:", userData.email)
-          setUser(userData)
+        const savedUser = localStorage.getItem("complihealth-user")
+        if (savedUser) {
+          const parsedUser = JSON.parse(savedUser)
+          console.log("CompliHealth - Restored user session:", parsedUser.email)
+          setUser(parsedUser)
         }
       } catch (error) {
-        console.error("CompliHealth - Error restoring session:", error)
+        console.error("CompliHealth - Session restore error:", error)
         localStorage.removeItem("complihealth-user")
       } finally {
         setLoading(false)
       }
     }
 
-    checkAuth()
+    checkSession()
   }, [])
 
   const signIn = async (email: string, password: string) => {
