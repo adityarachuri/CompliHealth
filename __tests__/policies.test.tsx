@@ -1,6 +1,7 @@
-import { render, screen, waitFor, within } from "@testing-library/react"
+import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import PoliciesPage from "@/app/policies/page"
+import { useAuth } from "@/contexts/auth-context"
 
 const mockAuthContext = {
   customer: {
@@ -24,15 +25,13 @@ jest.mock("@/contexts/auth-context", () => ({
   useAuth: jest.fn(),
 }))
 
-const { useAuth } = require("@/contexts/auth-context")
-
 describe("Policies Page", () => {
   afterEach(() => {
     jest.clearAllMocks()
   })
 
   it("shows a customer-facing title and policy summary", async () => {
-    useAuth.mockReturnValue(mockAuthContext.customer)
+    ;(useAuth as jest.Mock).mockReturnValue(mockAuthContext.customer)
 
     render(<PoliciesPage />)
 
@@ -42,7 +41,7 @@ describe("Policies Page", () => {
   })
 
   it("shows an insurer-facing title", async () => {
-    useAuth.mockReturnValue(mockAuthContext.insurer)
+    ;(useAuth as jest.Mock).mockReturnValue(mockAuthContext.insurer)
 
     render(<PoliciesPage />)
 
@@ -51,18 +50,18 @@ describe("Policies Page", () => {
   })
 
   it("lists demo policies with their premium and coverage details", async () => {
-    useAuth.mockReturnValue(mockAuthContext.customer)
+    ;(useAuth as jest.Mock).mockReturnValue(mockAuthContext.customer)
 
     render(<PoliciesPage />)
 
     expect(await screen.findByText("Comprehensive Health Insurance")).toBeInTheDocument()
     expect(screen.getByText("Dental Coverage")).toBeInTheDocument()
-    expect(screen.getByText("Policy #POL-2024-001")).toBeInTheDocument()
+    expect(screen.getByText(`Policy #POL-${new Date().getFullYear()}-001`)).toBeInTheDocument()
   })
 
   it("opens a policy's coverage breakdown dialog", async () => {
     const user = userEvent.setup()
-    useAuth.mockReturnValue(mockAuthContext.customer)
+    ;(useAuth as jest.Mock).mockReturnValue(mockAuthContext.customer)
 
     render(<PoliciesPage />)
 
