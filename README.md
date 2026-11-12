@@ -35,6 +35,9 @@ insurance system.
   external database or API layer.
 - **Testing**: Jest + React Testing Library for unit and integration tests.
 
+See [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) for the full technical deep dive — routing,
+the auth/authorization flow, per-page data models, and diagrams for all of it.
+
 ## Technology stack
 
 | Layer      | Technology |
@@ -134,3 +137,8 @@ This project follows [Semantic Versioning](https://semver.org/). See
 ## License
 
 This project is licensed under the [MIT License](./LICENSE).
+
+The MIT grant covers the application source code only. It does not extend to the "CompliHealth"
+name if ever used as a product brand, or to any credentials, connection strings, or non-synthetic
+data — none of which this repository contains, since all sample data is fictional and no backend
+or service credentials are part of the project.
