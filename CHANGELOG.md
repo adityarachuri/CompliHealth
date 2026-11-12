@@ -4,7 +4,7 @@ All notable changes to this project are documented in this file. The format is b
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/).
 
-## [1.0.0] — Unreleased
+## [1.0.0] — 2026-11-12
 
 ### Added
 - `LICENSE` (MIT), `CONTRIBUTING.md`, `SECURITY.md`, and this changelog.
@@ -15,6 +15,12 @@ All notable changes to this project are documented in this file. The format is b
 - `aria-label`s on the mobile navigation toggle and the login page's show/hide password button.
 - A default `type="button"` on the shared `Button` component so buttons never accidentally submit
   an enclosing form.
+- `docs/ARCHITECTURE.md`, a full technical deep dive into the routing, auth flow, authorization
+  model, page data models, and known architectural limitations.
+- `docs/complihealth-ip-licensing-guide.md`, a repository-specific IP and licensing governance
+  record, and a license-scope clarification note in the README.
+- `app/icon.svg`, a browser-tab favicon (none previously existed, causing a 404 on every page
+  load).
 
 ### Changed
 - Rewrote `README.md` to describe the project as a standalone application; removed all references
@@ -44,6 +50,12 @@ All notable changes to this project are documented in this file. The format is b
 - A type-safety issue in the analytics page's chart tooltip formatter.
 - Several accessibility and dead-code issues flagged by ESLint (unused variables, a missing
   `useEffect` dependency, an unescaped apostrophe, an empty TypeScript interface).
+- `package-lock.json` still listed `@supabase/supabase-js` after the dependency was removed from
+  `package.json`, which would have broken `npm ci` on a clean checkout.
+- The demo policies page hardcoded a 2024 policy period, so the renewal countdown went negative
+  once that year passed; policy dates now derive from the current year.
+- Two interaction-heavy tests intermittently exceeded Jest's 20s timeout under load; bumped to
+  30s.
 
 ## [0.1.0] — Prior history
 
