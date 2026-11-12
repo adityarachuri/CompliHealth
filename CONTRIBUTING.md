@@ -48,6 +48,12 @@ npm run verify
 This runs, in order: ESLint, the TypeScript compiler (no emit), the Jest suite with coverage
 thresholds enforced, and a production build. All four must pass.
 
+CI also runs `npm audit` against production dependencies (failing on high/critical) and, on pull
+requests, a dependency review that flags newly introduced packages with high-or-above severity
+advisories or incompatible licenses. `main` requires CI, CodeQL, and the dependency review check to
+pass before a PR can be merged — see [SECURITY.md](./SECURITY.md#cicd-quality-and-security-gates)
+for the full list of gates.
+
 If you add or change behavior in `app/`, `contexts/`, `lib/`, or `components/layout/`, add or
 update tests in `__tests__/` to cover it — these directories are included in the enforced coverage
 gate (see `jest.config.js`). Changes under `components/ui/` or `hooks/` (vendored UI primitives)

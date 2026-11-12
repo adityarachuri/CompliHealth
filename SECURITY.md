@@ -30,9 +30,31 @@ branches.
   versions, which would be a worse outcome than leaving this accepted. Re-evaluate once Jest ships
   a version that no longer depends on `deepmerge`.
 - Two other advisories previously tracked here — `postcss` bundled internally by Next.js, and
-  `minimatch` pinned by `@typescript-eslint/typescript-estree` below its patched version — are
-  resolved via the `overrides` entries in `package.json`, which pin both to patched versions across
-  the whole dependency tree without requiring a major-version bump of Next.js or `@typescript-eslint`.
+  `minimatch` pinned below its patched version by the ESLint/`@typescript-eslint` toolchain — are
+  resolved via the `overrides` entries in `package.json`. The `minimatch` override is scoped to
+  only the ESLint-related consumers (`eslint`, `eslint-config-next`,
+  `@typescript-eslint/typescript-estree`) rather than applied tree-wide, because a blanket override
+  previously forced Jest's own `test-exclude`/`glob` dependencies onto an incompatible major version
+  and broke coverage collection in CI.
+
+## CI/CD quality and security gates
+
+Every push and pull request to `main` runs:
+
+- **CI** (`.github/workflows/ci.yml`): lint, typecheck, the full Jest suite with coverage
+  thresholds enforced (`jest.config.js`), a production build, and `npm audit --omit=dev
+  --audit-level=high` as a gate against new high/critical vulnerabilities in production
+  dependencies.
+- **CodeQL** (`.github/workflows/codeql.yml`): static analysis for JavaScript/TypeScript on every
+  push, PR, and a weekly schedule.
+- **Dependency review** (pull requests only): flags newly introduced dependencies with
+  high-or-above severity advisories or incompatible licenses before merge.
+- **Dependabot**: weekly version updates for npm packages and GitHub Actions, plus automatic
+  security update PRs.
+- **Secret scanning and push protection** are enabled on this repository.
+
+`main` requires the CI, CodeQL, and dependency-review checks to pass before a pull request can be
+merged, and disallows force-pushes and branch deletion.
 
 ## Reporting a vulnerability
 
