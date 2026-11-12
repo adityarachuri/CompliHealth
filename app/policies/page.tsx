@@ -56,16 +56,18 @@ export default function PoliciesPage() {
     if (!user) return
 
     try {
-      // Demo policies data
+      // Demo policies data — policy period runs the current calendar year, so the
+      // renewal countdown always shows a sensible value regardless of when this demo is viewed.
+      const currentYear = new Date().getFullYear()
       const demoPolicies: Policy[] = [
         {
           id: "policy-1",
-          policy_number: "POL-2024-001",
+          policy_number: `POL-${currentYear}-001`,
           policy_type: "Comprehensive Health Insurance",
           premium_amount: 450,
           coverage_amount: 100000,
-          start_date: "2024-01-01",
-          end_date: "2024-12-31",
+          start_date: `${currentYear}-01-01`,
+          end_date: `${currentYear}-12-31`,
           status: "active",
           deductible: 1500,
           copay: 25,
@@ -74,12 +76,12 @@ export default function PoliciesPage() {
         },
         {
           id: "policy-2",
-          policy_number: "POL-2024-002",
+          policy_number: `POL-${currentYear}-002`,
           policy_type: "Dental Coverage",
           premium_amount: 85,
           coverage_amount: 2500,
-          start_date: "2024-01-01",
-          end_date: "2024-12-31",
+          start_date: `${currentYear}-01-01`,
+          end_date: `${currentYear}-12-31`,
           status: "active",
           deductible: 100,
           copay: 0,

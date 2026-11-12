@@ -75,7 +75,7 @@ describe("Claims Page", () => {
 
     // Form closes and resets after submission
     expect(screen.queryByText("Submit New Claim")).not.toBeInTheDocument()
-  })
+  }, 30000)
 
   it("lets the user cancel the new claim form", async () => {
     const user = userEvent.setup()

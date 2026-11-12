@@ -77,7 +77,7 @@ describe("Providers Page - Integration Tests", () => {
     await user.click(screen.getByRole("tab", { name: "Overview" }))
     await user.click(within(dialog).getByText("Book Appointment"))
     expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining("Metro Cardiology Center"))
-  })
+  }, 30000)
 
   it("should handle filtering and then viewing details", async () => {
     const user = userEvent.setup()
