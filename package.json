@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "description": "CompliHealth is a healthcare insurance management platform covering policy management, claims processing, provider networks, and analytics for customers, hospitals, TPAs, and insurers.",
+  "overrides": {
+    "postcss": "^8.5.32",
+    "minimatch": "^11.0.1"
+  },
   "scripts": {
     "build": "next build",
     "dev": "next dev",

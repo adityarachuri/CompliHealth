@@ -22,11 +22,17 @@ branches.
 - **Demo authentication is not real authentication.** The password (`demo123`) is intentionally
   public and documented on the login screen. Do not reuse this pattern, or any part of
   `contexts/auth-context.tsx`, for an application handling real user accounts or data.
-- **Dependency advisories confined to dev tooling.** `npm audit` may report advisories in
-  transitive dependencies of ESLint's TypeScript plugin chain and in a version of `postcss` bundled
-  internally by Next.js's own build pipeline. These affect lint-time and build-time tooling only,
-  not code that runs in the deployed application, and are tracked for resolution when upstream
-  publishes a fix compatible with the project's current major versions (see `package.json`).
+- **`deepmerge` (low severity, GHSA-gcqx-w48m-w2h4) has no upstream fix.** It's a transitive
+  dependency of `jest-config`'s internal configuration merging — `4.3.1`, the version flagged, is
+  the newest version ever published to npm; no patched release exists. It is reachable only by
+  developer-authored local Jest config, never by external or user-supplied input, and is not part
+  of the deployed application. `npm audit`'s own suggested fix is downgrading Jest four major
+  versions, which would be a worse outcome than leaving this accepted. Re-evaluate once Jest ships
+  a version that no longer depends on `deepmerge`.
+- Two other advisories previously tracked here — `postcss` bundled internally by Next.js, and
+  `minimatch` pinned by `@typescript-eslint/typescript-estree` below its patched version — are
+  resolved via the `overrides` entries in `package.json`, which pin both to patched versions across
+  the whole dependency tree without requiring a major-version bump of Next.js or `@typescript-eslint`.
 
 ## Reporting a vulnerability
 
