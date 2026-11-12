@@ -114,4 +114,28 @@ describe("Providers Page", () => {
     expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining("Metro Cardiology Center"))
     alertSpy.mockRestore()
   })
+
+  it("should sort providers alphabetically by name", async () => {
+    const user = userEvent.setup()
+
+    render(
+      <AuthProvider>
+        <ProvidersPage />
+      </AuthProvider>,
+    )
+
+    // Default sort is by distance: nearest provider (Downtown Urgent Care, 1.2 miles) comes first
+    const headingsByDistance = screen.getAllByRole("heading", { level: 3 })
+    expect(headingsByDistance[0]).toHaveTextContent("Downtown Urgent Care")
+
+    const sortSelect = screen.getAllByRole("combobox")[3]
+    await user.click(sortSelect)
+    const listbox = await screen.findByRole("listbox")
+    await user.click(within(listbox).getByText("Name"))
+
+    await waitFor(() => {
+      const headingsByName = screen.getAllByRole("heading", { level: 3 })
+      expect(headingsByName[0]).toHaveTextContent("Bright Smile Dental")
+    })
+  })
 })

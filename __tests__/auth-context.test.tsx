@@ -27,9 +27,26 @@ function TestComponent() {
       <div id="error-slot" data-testid="error" />
       <button onClick={() => signIn("customer@demo.com", "demo123")}>Sign In</button>
       <button onClick={handleSignIn}>Sign In Wrong Password</button>
+      <button
+        onClick={async () => {
+          try {
+            await signIn("nobody@demo.com", "demo123")
+          } catch (err) {
+            const el = document.getElementById("error-slot")
+            if (el) el.textContent = err instanceof Error ? err.message : "error"
+          }
+        }}
+      >
+        Sign In Unknown Email
+      </button>
       <button onClick={signOut}>Sign Out</button>
     </div>
   )
+}
+
+function ComponentOutsideProvider() {
+  useAuth()
+  return null
 }
 
 describe("AuthContext", () => {
@@ -124,5 +141,56 @@ describe("AuthContext", () => {
       expect(screen.getByTestId("user")).toHaveTextContent("no-user")
     })
     expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull()
+  })
+
+  it("should reject an unknown demo email", async () => {
+    const user = userEvent.setup()
+
+    render(
+      <AuthProvider>
+        <TestComponent />
+      </AuthProvider>,
+    )
+
+    await waitFor(() => expect(screen.getByTestId("loading")).toHaveTextContent("not-loading"))
+
+    await user.click(screen.getByText("Sign In Unknown Email"))
+
+    await waitFor(() => {
+      expect(screen.getByTestId("error")).toHaveTextContent(/user not found/i)
+    })
+    expect(screen.getByTestId("user")).toHaveTextContent("no-user")
+  })
+
+  it("should clear a corrupted stored session instead of crashing", async () => {
+    window.localStorage.setItem(STORAGE_KEY, "{not-valid-json")
+    const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {})
+
+    render(
+      <AuthProvider>
+        <TestComponent />
+      </AuthProvider>,
+    )
+
+    await waitFor(() => expect(screen.getByTestId("loading")).toHaveTextContent("not-loading"))
+
+    expect(screen.getByTestId("user")).toHaveTextContent("no-user")
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull()
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      "CompliHealth - Error restoring session:",
+      expect.any(Error),
+    )
+
+    consoleErrorSpy.mockRestore()
+  })
+
+  it("should throw when useAuth is used outside of an AuthProvider", () => {
+    const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {})
+
+    expect(() => render(<ComponentOutsideProvider />)).toThrow(
+      "useAuth must be used within an AuthProvider",
+    )
+
+    consoleErrorSpy.mockRestore()
   })
 })

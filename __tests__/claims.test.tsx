@@ -20,6 +20,32 @@ const mockAuthContext = {
     loading: false,
     signOut: jest.fn(),
   },
+  tpa: {
+    user: { id: "3", email: "tpa@demo.com", name: "Michael Chen", role: "tpa", organization: "HealthCare TPA Services" },
+    loading: false,
+    signOut: jest.fn(),
+  },
+  insurer: {
+    user: {
+      id: "4",
+      email: "insurer@demo.com",
+      name: "Lisa Rodriguez",
+      role: "insurer",
+      organization: "CompliHealth Insurance",
+    },
+    loading: false,
+    signOut: jest.fn(),
+  },
+  unknownRole: {
+    user: { id: "5", email: "auditor@demo.com", name: "Auditor Jane", role: "auditor", organization: "External" },
+    loading: false,
+    signOut: jest.fn(),
+  },
+  none: {
+    user: null,
+    loading: false,
+    signOut: jest.fn(),
+  },
 }
 
 jest.mock("@/contexts/auth-context", () => ({
@@ -107,5 +133,68 @@ describe("Claims Page", () => {
     expect(screen.getByText("Annual Physical Examination")).toBeInTheDocument()
     expect(screen.getByText("approved")).toBeInTheDocument()
     expect(screen.getByText("under review")).toBeInTheDocument()
+  })
+
+  it("shows the approved amount when a claim has one", () => {
+    useAuth.mockReturnValue(mockAuthContext.customer)
+
+    render(
+      <AuthProvider>
+        <ClaimsPage />
+      </AuthProvider>,
+    )
+
+    expect(screen.getByText("Approved: $315")).toBeInTheDocument()
+  })
+
+  it("shows a tpa-facing title and description", () => {
+    useAuth.mockReturnValue(mockAuthContext.tpa)
+
+    render(
+      <AuthProvider>
+        <ClaimsPage />
+      </AuthProvider>,
+    )
+
+    expect(screen.getByText("Process Claims")).toBeInTheDocument()
+    expect(screen.getByText("Review and process insurance claims")).toBeInTheDocument()
+    expect(screen.queryByText("New Claim")).not.toBeInTheDocument()
+  })
+
+  it("shows an insurer-facing title and description", () => {
+    useAuth.mockReturnValue(mockAuthContext.insurer)
+
+    render(
+      <AuthProvider>
+        <ClaimsPage />
+      </AuthProvider>,
+    )
+
+    expect(screen.getByText("Claims Overview")).toBeInTheDocument()
+    expect(screen.getByText("Monitor all claims across your network")).toBeInTheDocument()
+  })
+
+  it("falls back to a generic title for an unrecognized role", () => {
+    useAuth.mockReturnValue(mockAuthContext.unknownRole)
+
+    render(
+      <AuthProvider>
+        <ClaimsPage />
+      </AuthProvider>,
+    )
+
+    expect(screen.getByRole("heading", { name: "Claims" })).toBeInTheDocument()
+  })
+
+  it("renders nothing when there is no authenticated user", () => {
+    useAuth.mockReturnValue(mockAuthContext.none)
+
+    const { container } = render(
+      <AuthProvider>
+        <ClaimsPage />
+      </AuthProvider>,
+    )
+
+    expect(container).toBeEmptyDOMElement()
   })
 })

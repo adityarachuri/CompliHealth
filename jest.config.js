@@ -27,12 +27,16 @@ const customJestConfig = {
     "!**/layout.tsx",
     "!**/loading.tsx",
   ],
+  // Branches sit below 100 because a handful of fallback/else paths are genuinely unreachable
+  // given the fixed demo data (e.g. a badge-color default for a status string that never occurs,
+  // a sort-switch default for a Select that only offers 3 options) -- see the coverage table
+  // after `npm run test:coverage` for exact uncovered lines.
   coverageThreshold: {
     global: {
-      statements: 85,
-      branches: 75,
-      functions: 85,
-      lines: 85,
+      statements: 99,
+      branches: 93,
+      functions: 100,
+      lines: 99,
     },
   },
 }

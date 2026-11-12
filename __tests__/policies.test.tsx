@@ -18,6 +18,20 @@ const mockAuthContext = {
     },
     loading: false,
   },
+  tpa: {
+    user: { id: "3", email: "tpa@demo.com", name: "Michael Chen", role: "tpa", organization: "HealthCare TPA Services" },
+    loading: false,
+  },
+  hospital: {
+    user: {
+      id: "2",
+      email: "hospital@demo.com",
+      name: "Dr. Sarah Johnson",
+      role: "hospital",
+      organization: "City General Hospital",
+    },
+    loading: false,
+  },
 }
 
 jest.mock("@/contexts/auth-context", () => ({
@@ -73,5 +87,41 @@ describe("Policies Page", () => {
     const dialog = await screen.findByRole("dialog")
     expect(within(dialog).getByText("Comprehensive Health Insurance - Coverage Details")).toBeInTheDocument()
     expect(within(dialog).getByText("Coverage Breakdown")).toBeInTheDocument()
+  })
+
+  it("shows a tpa-facing title and description", async () => {
+    ;(useAuth as jest.Mock).mockReturnValue(mockAuthContext.tpa)
+
+    render(<PoliciesPage />)
+
+    expect(await screen.findByText("Manage Policies")).toBeInTheDocument()
+    expect(screen.getByText("Manage and process insurance policies")).toBeInTheDocument()
+  })
+
+  it("falls back to a generic title for a role without a dedicated policies view", async () => {
+    ;(useAuth as jest.Mock).mockReturnValue(mockAuthContext.hospital)
+
+    render(<PoliciesPage />)
+
+    expect(await screen.findByText("Policies")).toBeInTheDocument()
+  })
+
+  it("stops loading and logs an error if building the policy list fails", async () => {
+    const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {})
+    const originalGetFullYear = Date.prototype.getFullYear
+    Date.prototype.getFullYear = () => {
+      throw new Error("clock unavailable")
+    }
+    ;(useAuth as jest.Mock).mockReturnValue(mockAuthContext.customer)
+
+    render(<PoliciesPage />)
+
+    await screen.findByText("My Policies")
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith("Error fetching policies:", expect.any(Error))
+    expect(screen.queryByText("Comprehensive Health Insurance")).not.toBeInTheDocument()
+
+    Date.prototype.getFullYear = originalGetFullYear
+    consoleErrorSpy.mockRestore()
   })
 })

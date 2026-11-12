@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import LoginPage from "@/app/login/page"
-import { AuthProvider } from "@/contexts/auth-context"
+import { AuthProvider, useAuth } from "@/contexts/auth-context"
 
 const push = jest.fn()
 
@@ -11,10 +11,21 @@ jest.mock("next/navigation", () => ({
   usePathname: () => "/login",
 }))
 
+const actualAuthContext = jest.requireActual("@/contexts/auth-context")
+
+jest.mock("@/contexts/auth-context", () => {
+  const actual = jest.requireActual("@/contexts/auth-context")
+  return {
+    ...actual,
+    useAuth: jest.fn(actual.useAuth),
+  }
+})
+
 describe("Login Page", () => {
   beforeEach(() => {
     window.localStorage.clear()
     jest.clearAllMocks()
+    ;(useAuth as jest.Mock).mockImplementation(actualAuthContext.useAuth)
   })
 
   it("renders the demo accounts and the sign-in form", () => {
@@ -94,6 +105,31 @@ describe("Login Page", () => {
 
     await waitFor(() => {
       expect(screen.getByText(/invalid password/i)).toBeInTheDocument()
+    })
+    expect(push).not.toHaveBeenCalled()
+  })
+
+  it("shows a generic error when sign in rejects with a non-Error value", async () => {
+    const user = userEvent.setup()
+    ;(useAuth as jest.Mock).mockReturnValue({
+      signIn: jest.fn().mockRejectedValue("network unreachable"),
+      user: null,
+      loading: false,
+      signOut: jest.fn(),
+    })
+
+    render(
+      <AuthProvider>
+        <LoginPage />
+      </AuthProvider>,
+    )
+
+    await user.type(screen.getByLabelText("Email Address"), "customer@demo.com")
+    await user.type(screen.getByLabelText("Password"), "demo123")
+    await user.click(screen.getByRole("button", { name: "Sign In" }))
+
+    await waitFor(() => {
+      expect(screen.getByText("An error occurred during sign in")).toBeInTheDocument()
     })
     expect(push).not.toHaveBeenCalled()
   })
